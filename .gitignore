@@ -1,0 +1,20 @@
+.codex
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+.env
+.DS_Store
+*.pyc
+*.pyo
+*.pyd
+
+# Local data and generated outputs
+exports/*.pdf
+data/raw/*
+data/processed/*
+
+# Keep directory structure
+!data/raw/.gitkeep
+!data/processed/.gitkeep
