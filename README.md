@@ -189,6 +189,83 @@ Yo interpreto esta estructura de la siguiente manera:
 - `src/visualization/`: aqui puedo construir mapas, nubes de palabras y lineas temporales.
 - `tests/`: aqui puedo organizar las pruebas del proyecto.
 
+## Como funciona la estructura de carpetas
+
+La estructura de carpetas del proyecto va a funcionar separando cada parte segun su responsabilidad. Yo considero que esta organizacion es importante porque evita mezclar datos, codigo fuente, documentacion, resultados exportados y pruebas en un mismo lugar. De esta forma, el proyecto se vuelve mas claro, mas facil de mantener y tambien mas facil de trabajar en equipo.
+
+En este caso, la estructura quedo organizada con **6 carpetas principales**:
+
+- `app/`
+- `data/`
+- `docs/`
+- `exports/`
+- `src/`
+- `tests/`
+
+Si ademas cuento las subcarpetas internas que ya hacen parte de la base del proyecto, entonces en total salen **14 carpetas**:
+
+- `app/`
+- `data/`
+- `data/raw/`
+- `data/processed/`
+- `docs/`
+- `exports/`
+- `src/`
+- `src/data_sources/`
+- `src/processing/`
+- `src/similarity/`
+- `src/analysis/`
+- `src/clustering/`
+- `src/visualization/`
+- `tests/`
+
+## Para que sirve cada carpeta
+
+Yo entiendo el uso de cada carpeta de la siguiente manera:
+
+- `app/`: aqui iria la aplicacion principal o la interfaz desde donde se ejecuta el sistema.
+- `data/`: aqui se concentra toda la informacion usada por el proyecto.
+- `data/raw/`: aqui se guardan los datos originales descargados desde las bases de datos, sin modificar.
+- `data/processed/`: aqui se almacenan los datos ya limpios, unificados y listos para el analisis.
+- `docs/`: aqui se organiza la documentacion tecnica, academica y arquitectonica del proyecto.
+- `exports/`: aqui se guardan los resultados generados por la aplicacion, como PDF, reportes o salidas visuales.
+- `src/`: aqui vive el codigo fuente principal del sistema.
+- `src/data_sources/`: aqui se implementa la carga o automatizacion de obtencion de datos.
+- `src/processing/`: aqui se trabaja la limpieza, normalizacion y eliminacion de duplicados.
+- `src/similarity/`: aqui se implementan los algoritmos de similitud textual.
+- `src/analysis/`: aqui se desarrolla el analisis de frecuencia y deteccion de palabras asociadas.
+- `src/clustering/`: aqui se implementa el agrupamiento jerarquico y los dendrogramas.
+- `src/visualization/`: aqui se construyen los componentes visuales del proyecto.
+- `tests/`: aqui se ubican las pruebas para validar el comportamiento del sistema.
+
+## Por que esta estructura le sirve al proyecto
+
+Yo considero que esta estructura si le sirve al proyecto porque el trabajo tiene varias etapas claramente diferenciadas:
+
+1. Obtener datos.
+2. Limpiarlos y organizarlos.
+3. Analizar similitud entre textos.
+4. Extraer frecuencia de palabras y terminos asociados.
+5. Agrupar abstracts.
+6. Visualizar resultados.
+7. Documentar y validar el sistema.
+
+Si todo eso se desarrollara en una sola carpeta, el proyecto se volveria desordenado rapidamente. En cambio, con esta organizacion cada parte tiene un lugar definido y eso ayuda tanto al desarrollo como a la explicacion academica del trabajo.
+
+## Flujo del proyecto usando las carpetas
+
+La manera en que yo visualizo el funcionamiento del proyecto con esta estructura es la siguiente:
+
+1. Los archivos originales ingresan a `data/raw/`.
+2. Luego se limpian y transforman para pasar a `data/processed/`.
+3. Los modulos dentro de `src/` usan esa informacion para hacer comparaciones, analisis, clustering y visualizacion.
+4. La carpeta `app/` conecta esos modulos y permite ejecutar la aplicacion.
+5. Los resultados finales se guardan en `exports/`.
+6. Las explicaciones tecnicas y academicas quedan en `docs/`.
+7. Las validaciones del sistema se organizan en `tests/`.
+
+Desde mi punto de vista, esta estructura no solo ayuda a programar mejor, sino tambien a presentar el proyecto de una manera mucho mas profesional y entendible.
+
 ## Estrategia de ramas en GitHub y local
 
 Para trabajar este proyecto entre **Cristhian y Daniel**, considero que es conveniente usar una estrategia de ramas que ayude a mantener orden, trazabilidad y estabilidad tanto en local como en GitHub.
