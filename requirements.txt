@@ -1,0 +1,30 @@
+# Parseo y datos
+bibtexparser==1.4.1
+pandas==2.2.3
+unidecode==1.3.8
+
+# Procesamiento de texto y NLP
+nltk
+python-Levenshtein==0.25.1
+scikit-learn
+scipy
+
+# Algoritmos de similitud con IA
+rank-bm25
+sentence-transformers
+torch --index-url https://download.pytorch.org/whl/cpu
+
+# Visualización
+matplotlib
+wordcloud
+plotly
+kaleido>=1.0
+
+# Exportación PDF
+fpdf2
+
+# API geográfica
+requests
+
+# Aplicación web
+streamlit
