@@ -9,6 +9,7 @@ venv/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
 
 # Local data and generated outputs
 exports/*.pdf

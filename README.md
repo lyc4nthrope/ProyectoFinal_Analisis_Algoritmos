@@ -308,3 +308,98 @@ Desde mi punto de vista, este flujo ayuda a trabajar de manera mas organizada y 
 En conclusion, este proyecto busca aplicar algoritmos al analisis de publicaciones cientificas sobre inteligencia artificial generativa, integrando recoleccion de datos, limpieza, comparacion textual, agrupamiento, visualizacion y documentacion. Yo lo entiendo como un proyecto academico bastante completo, porque combina teoria, implementacion y capacidad de analisis.
 
 Tambien concluyo que **si es totalmente viable hacerlo en Python**, ya que este lenguaje ofrece las herramientas necesarias para cumplir con todos los requerimientos del proyecto de forma clara, modular y profesional.
+
+---
+
+## Instalacion y ejecucion
+
+### Requisitos previos
+
+- Python 3.11 o superior
+- pip
+
+### Pasos
+
+```bash
+# 1. Instalar dependencias
+pip install -r requirements.txt
+
+# 2. Instalar el proyecto en modo editable (resuelve imports entre modulos)
+pip install -e . --no-deps
+
+# 3. Instalar Chrome para exportacion de graficas a PNG (solo una vez)
+#    Cuando el comando pregunte, responder 'y'
+plotly_get_chrome
+
+# 4. Ejecutar la aplicacion
+streamlit run app/main.py
+```
+
+La aplicacion queda disponible en `http://localhost:8501`.
+
+### Datos de entrada
+
+Los archivos BibTeX de las bases de datos deben ubicarse en:
+
+```
+data/raw/sciencedirect/         <- archivos .bib de ScienceDirect
+data/raw/academicsearchultimate/ <- archivos .bibtex de EBSCO Academic Search Ultimate
+```
+
+Si `data/processed/unified.csv` no existe al arrancar la app, el sistema lo genera automaticamente.
+
+---
+
+## Arquitectura tecnica
+
+### Flujo de datos
+
+```
+data/raw/          ->  src/processing/       ->  data/processed/
+(BibTeX)              (parse + dedup)            (unified.csv)
+                            |
+                            v
+                   src/similarity/           ->  Comparacion par a par (6 algoritmos)
+                   src/analysis/             ->  Frecuencia conceptos + TF-IDF + P/R/F1
+                   src/clustering/           ->  Dendrogramas + correlacion cofenotica
+                   src/visualization/        ->  Graficas + PDF
+                            |
+                            v
+                       app/main.py           ->  Interfaz Streamlit (6 secciones)
+```
+
+### Descripcion de modulos
+
+| Modulo | Archivo(s) | Responsabilidad |
+|--------|-----------|-----------------|
+| **R1 — Ingesta** | `src/data_sources/bibtex_parser.py` | Parsea archivos BibTeX de cualquier fuente |
+| **R1 — Deduplicacion** | `src/processing/deduplication.py` | Exact match O(1) + Levenshtein con umbral 0.90 |
+| **R1 — Unificador** | `src/processing/unifier.py` | Orquesta descubrimiento, carga y guardado del corpus |
+| **R1 — Preprocesamiento** | `src/processing/text_preprocessing.py` | `normalize()`, `tokenize()`, `to_string()` compartidos |
+| **R2 — Similitud** | `src/similarity/` | 6 algoritmos: Levenshtein, Jaccard, Cosine TF-IDF, BM25, LSI, Sentence Embeddings |
+| **R3 — Conceptos** | `src/analysis/concept_frequency.py` | Frecuencia de 15 conceptos GenAI via regex |
+| **R3 — Palabras** | `src/analysis/word_extractor.py` | Top-15 terminos por TF-IDF con bigramas |
+| **R3 — Evaluacion** | `src/analysis/precision_evaluator.py` | Precision / Recall / F1 sobre terminos extraidos |
+| **R4 — Clustering** | `src/clustering/hierarchical.py` | Single, Complete y Ward linkage con correlacion cofenotica |
+| **R4 — Dendrograma** | `src/clustering/dendrogram.py` | Figura matplotlib a partir del resultado de clustering |
+| **R5 — Heatmap** | `src/visualization/geo_heatmap.py` | Mapa coropletico Plotly; paises resueltos via CrossRef |
+| **R5 — Wordcloud** | `src/visualization/wordcloud_chart.py` | Nube de palabras desde abstracts y keywords |
+| **R5 — Timeline** | `src/visualization/timeline_chart.py` | Publicaciones por anio y por revista (top 10) |
+| **R5 — PDF** | `src/visualization/pdf_exporter.py` | Exporta figuras Plotly/Matplotlib a un PDF con portada |
+| **R6 — App** | `app/main.py` + `app/views/` | Interfaz Streamlit con 6 secciones y caching de analyzers |
+
+### Decisiones de diseno relevantes
+
+- **Patron Strategy** en `src/similarity/`: cada algoritmo implementa `BaseSimilarity` con `fit()` y `compute_pair()`.
+- **Caching lazy** en `app/loader.py`: `@st.cache_resource` garantiza que `SimilarityAnalyzer` y `ClusteringAnalyzer` se inicializan una sola vez por sesion, independientemente de cuantas veces el usuario navegue entre paginas.
+- **L2-normalizacion** en vectorizacion TF-IDF para clustering: permite usar distancia euclidiana que equivale a distancia coseno cuando `||v||=1`, requisito de Ward linkage.
+- **Cache local JSON** en `src/visualization/geo_resolver.py`: evita repetir llamadas a la API de CrossRef para DOIs ya resueltos.
+- **Instalacion editable** via `pyproject.toml`: elimina la necesidad de `sys.path` hacks en cualquier modulo.
+
+### Bases de datos utilizadas
+
+| Fuente | Formato | Articulos |
+|--------|---------|-----------|
+| ScienceDirect | `.bib` | 25 |
+| EBSCO Academic Search Ultimate | `.bibtex` | 29 |
+| **Total unico** | `unified.csv` | **54** |
