@@ -80,7 +80,7 @@ def _fetch_country_from_crossref(doi: str) -> str | None:
             country = _extract_country_from_affiliation(aff.get("name", ""))
             if country:
                 return country
-    except Exception:
+    except (requests.RequestException, ValueError, KeyError):
         pass
     return None
 

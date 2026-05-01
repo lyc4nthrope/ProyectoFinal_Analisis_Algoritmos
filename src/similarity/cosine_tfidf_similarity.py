@@ -34,8 +34,9 @@ class CosineTFIDFSimilarity(BaseSimilarity):
         proc_b = to_string(text_b)
 
         if self._vectorizer is None:
-            self._vectorizer = TfidfVectorizer()
-            self._vectorizer.fit([proc_a, proc_b])
+            raise RuntimeError(
+                "CosineTFIDFSimilarity debe ser ajustado con fit() antes de llamar compute_pair()."
+            )
 
         vectors = self._vectorizer.transform([proc_a, proc_b])
         score = round(float(cosine_similarity(vectors[0], vectors[1])[0][0]), 4)

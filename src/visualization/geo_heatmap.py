@@ -13,13 +13,10 @@ def build_country_counts(df: pd.DataFrame) -> pd.DataFrame:
     dois = df["doi"].fillna("").tolist()
     country_map = resolve_countries(dois)
 
-    countries = []
-    for _, row in df.iterrows():
-        doi = row.get("doi", "")
-        countries.append(country_map.get(doi, "Unknown") if doi else "Unknown")
-
     df = df.copy()
-    df["country"] = countries
+    df["country"] = df["doi"].fillna("").apply(
+        lambda doi: country_map.get(doi, "Unknown") if doi else "Unknown"
+    )
 
     counts = (
         df[df["country"] != "Unknown"]
