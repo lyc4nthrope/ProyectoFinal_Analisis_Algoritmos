@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 
 import pandas as pd
@@ -36,7 +37,7 @@ def save_results(unique: list[dict], duplicates: list[dict], processed_dir: Path
     pd.DataFrame(duplicates).to_csv(processed_dir / "duplicates.csv", index=False, encoding="utf-8")
 
 
-def run(api_query: str | None = None, on_api_error: callable | None = None) -> None:
+def run(api_query: str | None = None, on_api_error: Callable | None = None) -> None:
     files = discover_files(RAW_DIR)
     if not files:
         print("No se encontraron archivos .bib o .bibtex en data/raw/")
@@ -59,7 +60,7 @@ def fetch_and_merge_api(
     articles: list[dict],
     query: str | None = None,
     max_results: int = 25,
-    on_error: callable | None = None,
+    on_error: Callable | None = None,
     direct_results: list[dict] | None = None,
 ) -> list[dict]:
     if direct_results is not None:
