@@ -1,7 +1,12 @@
+import hashlib
+import json
+from datetime import datetime
+from pathlib import Path
+
 import streamlit as st
 import pandas as pd
 
-from src.config import PROCESSED_DIR
+from src.config import PROCESSED_DIR, RAW_DIR
 from src.analysis.concept_analyzer import ConceptAnalyzer
 from src.clustering.clustering_analyzer import ClusteringAnalyzer
 from src.similarity.similarity_analyzer import SimilarityAnalyzer
@@ -32,3 +37,36 @@ def get_concept_analyzer() -> ConceptAnalyzer:
 def get_clustering_analyzer() -> ClusteringAnalyzer:
     df = load_corpus()
     return ClusteringAnalyzer(df["abstract"].tolist(), df["title"].tolist())
+
+
+def save_api_cache(query: str, results: list[dict]) -> None:
+    cache_dir = RAW_DIR / "api_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    hash_key = hashlib.sha256(query.encode()).hexdigest()[:16]
+    cache_file = cache_dir / f"{hash_key}.json"
+
+    cache_data = {
+        "query": query,
+        "cached_at": datetime.now().isoformat(),
+        "results": results,
+    }
+
+    with open(cache_file, "w", encoding="utf-8") as f:
+        json.dump(cache_data, f, ensure_ascii=False, indent=2)
+
+
+def load_api_cache(query: str) -> list[dict] | None:
+    cache_dir = RAW_DIR / "api_cache"
+    hash_key = hashlib.sha256(query.encode()).hexdigest()[:16]
+    cache_file = cache_dir / f"{hash_key}.json"
+
+    if not cache_file.exists():
+        return None
+
+    try:
+        with open(cache_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data["results"]
+    except (json.JSONDecodeError, KeyError, IOError):
+        return None
