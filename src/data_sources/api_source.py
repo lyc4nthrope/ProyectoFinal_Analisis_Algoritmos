@@ -42,6 +42,8 @@ class ApiParser:
 
         time.sleep(1)
 
+        if data is None:
+            return []
         return [self._to_article(work) for work in data.get("results", [])]
 
     def _build_url(self, query: str, max_results: int) -> str:
@@ -94,20 +96,20 @@ class ApiParser:
         authors = "; ".join(
             a["author"]["display_name"]
             for a in work.get("authorships", [])
-            if a.get("author", {}).get("display_name")
+            if (a.get("author") or {}).get("display_name")
         )
         # keywords[] → lista de keywords, cada una con display_name
         keywords = "; ".join(
             k["display_name"]
             for k in work.get("keywords", [])
-            if k.get("display_name")
+            if k and k.get("display_name")
         )
         # biblio → metadatos de publicación (puede ser null en preprints)
-        first = work.get("biblio", {}).get("first_page")
-        last = work.get("biblio", {}).get("last_page")
+        first = (work.get("biblio") or {}).get("first_page")
+        last = (work.get("biblio") or {}).get("last_page")
         pages = f"{first}-{last}" if first and last else ""
         # issn → lista, tomamos el primer elemento si existe
-        issn_list = work.get("primary_location", {}).get("source", {}).get("issn", [])
+        issn_list = (work.get("primary_location") or {}).get("source", {}).get("issn", [])
         issn = issn_list[0] if issn_list else ""
         # publication_year → viene como entero, lo pasamos a string
         year = work.get("publication_year")
@@ -120,15 +122,15 @@ class ApiParser:
             "authors": authors,                                          # work.authorships[].author.display_name
             "keywords": keywords,                                        # work.keywords[].display_name
             "year": str(year) if year is not None else "",               # work.publication_year
-            "journal": work.get("primary_location", {}).get(             # work.primary_location.source.display_name
+            "journal": (work.get("primary_location") or {}).get(             # work.primary_location.source.display_name
                 "source", {}
             ).get("display_name", ""),
             "doi": work.get("doi", ""),                                  # work.doi
-            "url": work.get("primary_location", {}).get(                 # work.primary_location.landing_page_url
+            "url": (work.get("primary_location") or {}).get(                 # work.primary_location.landing_page_url
                 "landing_page_url", ""
             ),
-            "volume": work.get("biblio", {}).get("volume", ""),          # work.biblio.volume
-            "number": work.get("biblio", {}).get("issue", ""),           # work.biblio.issue
+            "volume": (work.get("biblio") or {}).get("volume", ""),          # work.biblio.volume
+            "number": (work.get("biblio") or {}).get("issue", ""),           # work.biblio.issue
             "pages": pages,                                              # work.biblio.first_page + last_page
             "issn": issn,                                                # work.primary_location.source.issn[0]
             "source": self.source_name,                                  # constante: "OpenAlex"
