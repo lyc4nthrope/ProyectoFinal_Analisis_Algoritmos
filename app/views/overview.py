@@ -22,6 +22,12 @@ def render() -> None:
     col4.metric("Año más reciente", int(years.max()) if len(years) > 0 else "—")
 
     st.subheader("Todos los artículos")
-    display = df[["title", "authors", "journal", "year", "doi"]].copy()
-    display.columns = ["Título", "Autores", "Revista", "Año", "DOI"]
+    cols = ["title", "authors", "journal", "year", "doi"]
+    if "source" in df.columns:
+        cols.append("source")
+    display = df[cols].copy()
+    labels = ["Título", "Autores", "Revista", "Año", "DOI"]
+    if "source" in df.columns:
+        labels.append("Base de datos")
+    display.columns = labels
     st.dataframe(display, width="stretch", hide_index=True)

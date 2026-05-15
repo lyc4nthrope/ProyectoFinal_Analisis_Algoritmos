@@ -97,10 +97,10 @@ def render() -> None:
 
         if selected_count > 0:
             if st.button("📥 Integrar al corpus", type="primary"):
-                selected = [
-                    row for _, row in edited_df.iterrows()
-                    if row.get("seleccionar", False)
+                selected_mask = [
+                    row.get("seleccionar", False) for _, row in edited_df.iterrows()
                 ]
+                selected = [r for r, sel in zip(results, selected_mask) if sel]
                 if not selected:
                     st.warning("Seleccioná al menos un artículo para integrar.")
                 else:
@@ -110,10 +110,8 @@ def render() -> None:
                     processed_dir.mkdir(parents=True, exist_ok=True)
                     path = processed_dir / "unified.csv"
 
-                    result_df = pd.DataFrame(selected)
-                    if "seleccionar" in result_df.columns:
-                        result_df = result_df.drop(columns=["seleccionar"])
-                    result_df.to_csv(path, index=False)
+                    pd.DataFrame(selected).to_csv(path, index=False)
 
                     st.cache_data.clear()
-                    st.success(f"✅ {len(selected)} artículo(s) integrado(s) al corpus. Recargá la vista Inicio para verlos.")
+                    st.cache_resource.clear()
+                    st.success(f"✅ {len(selected)} artículo(s) integrado(s) al corpus. Las vistas se actualizarán al recargarlas.")
