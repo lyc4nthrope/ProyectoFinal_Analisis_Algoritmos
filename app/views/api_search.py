@@ -21,11 +21,13 @@ def render() -> None:
     max_results = st.slider(
         "Cantidad de resultados",
         min_value=5,
-        max_value=200,
+        max_value=1000,
         value=25,
         step=5,
         key="api_max_results",
     )
+    if max_results > 200:
+        st.caption(f"📄 Se usarán múltiples consultas paginadas a OpenAlex para obtener los {max_results} resultados.")
 
     if st.button("🔍 Buscar en OpenAlex", type="primary"):
         if not query or not query.strip():
@@ -34,7 +36,8 @@ def render() -> None:
             cached = load_api_cache(query, max_results)
 
             if cached is not None:
-                st.session_state.api_results = cached
+                st.session_state.api_results = cached["results"]
+                st.session_state.api_total = cached["total"]
                 st.session_state.api_from_cache = True
                 st.info("📦 Resultados cacheados")
             else:
@@ -42,9 +45,10 @@ def render() -> None:
                 with st.spinner("Buscando en OpenAlex..."):
                     try:
                         parser = ApiParser()
-                        results = parser.search(query, max_results)
-                        st.session_state.api_results = results
-                        save_api_cache(query, max_results, results)
+                        result_data = parser.search(query, max_results)
+                        st.session_state.api_results = result_data["results"]
+                        st.session_state.api_total = result_data["total"]
+                        save_api_cache(query, max_results, result_data)
                         st.info("🌐 Búsqueda en vivo")
                     except (ConnectionError, requests.HTTPError) as e:
                         st.error(f"❌ Error al conectar con OpenAlex: {e}")
@@ -57,7 +61,8 @@ def render() -> None:
 
     if "api_results" in st.session_state and st.session_state.api_results:
         results = st.session_state.api_results
-        st.subheader(f"Resultados ({len(results)})")
+        total = st.session_state.get("api_total", len(results))
+        st.subheader(f"Resultados ({len(results)}) de {total} totales")
 
         df = pd.DataFrame(results)
         display_cols = {
@@ -110,8 +115,17 @@ def render() -> None:
                     processed_dir.mkdir(parents=True, exist_ok=True)
                     path = processed_dir / "unified.csv"
 
-                    pd.DataFrame(selected).to_csv(path, index=False)
+                    nuevos = pd.DataFrame(selected)
+                    if path.exists():
+                        existentes = pd.read_csv(path)
+                        corpus = pd.concat([existentes, nuevos], ignore_index=True)
+                        corpus = corpus.drop_duplicates(subset="doi", keep="first")
+                    else:
+                        corpus = nuevos
+
+                    corpus.to_csv(path, index=False)
+                    total = len(corpus)
 
                     st.cache_data.clear()
                     st.cache_resource.clear()
-                    st.success(f"✅ {len(selected)} artículo(s) integrado(s) al corpus. Las vistas se actualizarán al recargarlas.")
+                    st.success(f"✅ {len(selected)} artículo(s) integrado(s). Corpus actualizado: {total} artículo(s) en total.")

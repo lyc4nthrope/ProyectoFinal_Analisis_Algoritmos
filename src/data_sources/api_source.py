@@ -19,32 +19,59 @@ class ApiParser:
         if not query or not query.strip():
             return []
 
-        url = self._build_url(query, max_results)
+        url = self._build_url(query, min(max_results, 200))
         headers = {
             "Accept": "application/json",
             "User-Agent": "Bibliometria-GenAI/0.1.0"
         }
 
-        try:
-            resp = requests.get(url, headers=headers, timeout=30)
-        except requests.exceptions.ConnectionError as e:
-            raise ConnectionError(f"No se pudo conectar con OpenAlex: {e}") from e
+        all_works = []
+        total_count = 0
+        cursor = "*"
 
-        if resp.status_code != 200:
-            raise requests.HTTPError(
-                f"OpenAlex responded {resp.status_code}: {resp.reason}"
-            )
+        while len(all_works) < max_results and cursor:
+            paginated_url = f"{url}&cursor={cursor}"
 
-        try:
-            data = resp.json()
-        except ValueError as e:
-            raise ValueError("OpenAlex devolvió JSON inválido") from e
+            try:
+                resp = requests.get(paginated_url, headers=headers, timeout=30)
+            except requests.exceptions.ConnectionError as e:
+                if all_works:
+                    break
+                raise ConnectionError(f"No se pudo conectar con OpenAlex: {e}") from e
 
-        time.sleep(1)
+            if resp.status_code != 200:
+                if all_works:
+                    break
+                raise requests.HTTPError(
+                    f"OpenAlex responded {resp.status_code}: {resp.reason}"
+                )
 
-        if data is None:
-            return []
-        return [self._to_article(work) for work in data.get("results", [])]
+            try:
+                data = resp.json()
+            except ValueError as e:
+                if all_works:
+                    break
+                raise ValueError("OpenAlex devolvió JSON inválido") from e
+
+            if data is None:
+                break
+
+            if total_count == 0:
+                total_count = data.get("meta", {}).get("count", 0)
+
+            results = data.get("results", [])
+            if not results:
+                break
+
+            all_works.extend(results)
+            cursor = data.get("meta", {}).get("next_cursor")
+
+            time.sleep(1)
+
+        return {
+            "results": [self._to_article(work) for work in all_works[:max_results]],
+            "total": total_count,
+        }
 
     def _build_url(self, query: str, max_results: int) -> str:
         """Construye la URL de búsqueda de OpenAlex."""

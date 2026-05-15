@@ -47,7 +47,7 @@ def get_clustering_analyzer() -> ClusteringAnalyzer | None:
     return ClusteringAnalyzer(df["abstract"].tolist(), df["title"].tolist())
 
 
-def save_api_cache(query: str, max_results: int, results: list[dict]) -> None:
+def save_api_cache(query: str, max_results: int, result_data: dict) -> None:
     cache_dir = RAW_DIR / "api_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -59,14 +59,15 @@ def save_api_cache(query: str, max_results: int, results: list[dict]) -> None:
         "query": query,
         "max_results": max_results,
         "cached_at": datetime.now().isoformat(),
-        "results": results,
+        "results": result_data["results"],
+        "total": result_data["total"],
     }
 
     with open(cache_file, "w", encoding="utf-8") as f:
         json.dump(cache_data, f, ensure_ascii=False, indent=2)
 
 
-def load_api_cache(query: str, max_results: int) -> list[dict] | None:
+def load_api_cache(query: str, max_results: int) -> dict | None:
     cache_dir = RAW_DIR / "api_cache"
     raw = f"{query}|{max_results}"
     hash_key = hashlib.sha256(raw.encode()).hexdigest()[:16]
@@ -78,6 +79,6 @@ def load_api_cache(query: str, max_results: int) -> list[dict] | None:
     try:
         with open(cache_file, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return data["results"]
+        return {"results": data["results"], "total": data.get("total", 0)}
     except (json.JSONDecodeError, KeyError, IOError):
         return None
