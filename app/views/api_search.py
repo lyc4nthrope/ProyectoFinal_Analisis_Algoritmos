@@ -4,7 +4,7 @@ import pandas as pd
 import requests
 import streamlit as st
 
-from app.loader import load_api_cache, save_api_cache
+
 from src.data_sources import ApiParser
 
 
@@ -18,51 +18,42 @@ def render() -> None:
         key="api_query",
     )
 
-    max_results = st.slider(
-        "Cantidad de resultados",
+    page_size = st.slider(
+        "Resultados por página",
         min_value=5,
-        max_value=1000,
+        max_value=50,
         value=25,
         step=5,
-        key="api_max_results",
+        key="api_page_size",
     )
-    if max_results > 200:
-        st.caption(f"📄 Se usarán múltiples consultas paginadas a OpenAlex para obtener los {max_results} resultados.")
 
     if st.button("🔍 Buscar en OpenAlex", type="primary"):
         if not query or not query.strip():
             st.warning("⚠️ Ingrese un término de búsqueda.")
         else:
-            cached = load_api_cache(query, max_results)
+            st.session_state.api_results = []
+            st.session_state.api_total = 0
+            st.session_state.api_cursor = None
+            st.session_state.api_from_cache = False
 
-            if cached is not None:
-                st.session_state.api_results = cached["results"]
-                st.session_state.api_total = cached["total"]
-                st.session_state.api_from_cache = True
-                st.info("📦 Resultados cacheados")
-            else:
-                st.session_state.api_from_cache = False
-                with st.spinner("Buscando en OpenAlex..."):
-                    try:
-                        parser = ApiParser()
-                        result_data = parser.search(query, max_results)
-                        st.session_state.api_results = result_data["results"]
-                        st.session_state.api_total = result_data["total"]
-                        save_api_cache(query, max_results, result_data)
-                        st.info("🌐 Búsqueda en vivo")
-                    except (ConnectionError, requests.HTTPError) as e:
-                        st.error(f"❌ Error al conectar con OpenAlex: {e}")
-                        st.session_state.api_results = None
-                    except Exception as e:
-                        st.error(f"❌ Error inesperado: {e}")
-                        st.session_state.api_results = None
+            with st.spinner("Buscando en OpenAlex..."):
+                try:
+                    parser = ApiParser()
+                    data = parser.fetch_page(query, "*", page_size)
+                    st.session_state.api_results = data["results"]
+                    st.session_state.api_total = data["total"]
+                    st.session_state.api_cursor = data["next_cursor"]
+                    st.info("🌐 Búsqueda en vivo" if data["results"] else "Sin resultados")
+                except (ConnectionError, requests.HTTPError) as e:
+                    st.error(f"❌ Error al conectar con OpenAlex: {e}")
 
     st.divider()
 
     if "api_results" in st.session_state and st.session_state.api_results:
         results = st.session_state.api_results
-        total = st.session_state.get("api_total", len(results))
-        st.subheader(f"Resultados ({len(results)}) de {total} totales")
+        total = st.session_state.api_total
+        loaded = len(results)
+        st.subheader(f"Mostrando {loaded} de {total} resultados")
 
         df = pd.DataFrame(results)
         display_cols = {
@@ -100,6 +91,20 @@ def render() -> None:
         if selected_count > 0:
             st.caption(f"{selected_count} resultado(s) seleccionado(s)")
 
+        if st.session_state.api_cursor and loaded < total:
+            if st.button("📄 Cargar más resultados"):
+                with st.spinner("Cargando más resultados..."):
+                    try:
+                        parser = ApiParser()
+                        data = parser.fetch_page(query, st.session_state.api_cursor, page_size)
+                        new_results = data["results"]
+                        if new_results:
+                            st.session_state.api_results.extend(new_results)
+                            st.session_state.api_cursor = data["next_cursor"]
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error al cargar más resultados: {e}")
+
         if selected_count > 0:
             if st.button("📥 Integrar al corpus", type="primary"):
                 selected_mask = [
@@ -124,8 +129,8 @@ def render() -> None:
                         corpus = nuevos
 
                     corpus.to_csv(path, index=False)
-                    total = len(corpus)
+                    total_corpus = len(corpus)
 
                     st.cache_data.clear()
                     st.cache_resource.clear()
-                    st.success(f"✅ {len(selected)} artículo(s) integrado(s). Corpus actualizado: {total} artículo(s) en total.")
+                    st.success(f"✅ {len(selected)} artículo(s) integrado(s). Corpus actualizado: {total_corpus} artículo(s) en total.")
