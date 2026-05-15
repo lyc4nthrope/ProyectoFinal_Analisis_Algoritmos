@@ -13,10 +13,9 @@ class SentenceEmbeddingSimilarity(BaseSimilarity):
     Produce vectores densos de 384 dimensiones que capturan significado semántico profundo.
     Similitud: coseno entre los vectores de embedding.
 
-    Optimización de corpus: fit() pre-codifica todos los documentos en un solo batch,
-    almacenándolos en un dict {texto: embedding}. compute_pair() hace lookup O(1) en ese
-    dict en lugar de re-codificar. compute_matrix() codifica todos los textos en un batch
-    y calcula la matriz completa sin duplicar codificaciones.
+    Lazy loading: el modelo se descarga y el corpus se codifica en el primer
+    compute_pair() o compute_matrix(), no en fit(). Esto evita bloquear la UI
+    al crear el SimilarityAnalyzer.
     """
 
     COMPLEXITY_TIME = "O(N·d)"
@@ -26,6 +25,7 @@ class SentenceEmbeddingSimilarity(BaseSimilarity):
         self._model_name = model_name
         self._model: SentenceTransformer | None = None
         self._corpus_embeddings: dict[str, np.ndarray] = {}
+        self._lazy_corpus: list[str] | None = None
 
     @property
     def name(self) -> str:
@@ -36,20 +36,36 @@ class SentenceEmbeddingSimilarity(BaseSimilarity):
             self._model = SentenceTransformer(self._model_name)
         return self._model
 
+    def _ensure_encoded(self) -> None:
+        """Codifica el corpus completo en batch si no está ya cacheado (lazy)."""
+        if self._corpus_embeddings:
+            return
+        if self._lazy_corpus is not None and len(self._lazy_corpus) > 0:
+            model = self._load_model()
+            embeddings = model.encode(
+                self._lazy_corpus,
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            )
+            self._corpus_embeddings = dict(zip(self._lazy_corpus, embeddings))
+            self._lazy_corpus = None  # liberar memoria
+
     def fit(self, corpus: list[str]) -> "SentenceEmbeddingSimilarity":
-        """Pre-codifica el corpus completo en un solo batch: O(N) llamadas al encoder."""
-        model = self._load_model()
-        embeddings = model.encode(corpus, normalize_embeddings=True, show_progress_bar=False)
-        self._corpus_embeddings = dict(zip(corpus, embeddings))
+        """Almacena el corpus para codificación diferida (lazy loading).
+        El modelo NO se descarga acá — se descarga en el primer compute_pair()
+        o compute_matrix(). Esto evita bloquear la UI al crear el analyzer."""
+        self._lazy_corpus = corpus
         return self
 
     def _get_embedding(self, text: str) -> np.ndarray:
         """Retorna embedding cacheado O(1) o codifica el texto bajo demanda."""
+        self._ensure_encoded()
         if text in self._corpus_embeddings:
             return self._corpus_embeddings[text]
         return self._load_model().encode([text], normalize_embeddings=True)[0]
 
     def compute_pair(self, text_a: str, text_b: str) -> SimilarityResult:
+        self._ensure_encoded()
         vec_a = self._get_embedding(text_a)
         vec_b = self._get_embedding(text_b)
         score = round(float(np.dot(vec_a, vec_b)), 4)
@@ -73,6 +89,7 @@ class SentenceEmbeddingSimilarity(BaseSimilarity):
         Codifica todos los textos en un único batch y construye la matriz completa.
         Complejidad: O(N) codificaciones en lugar de O(N²) del método base.
         """
+        self._ensure_encoded()
         embeddings = self._load_model().encode(
             texts, normalize_embeddings=True, show_progress_bar=False
         )
