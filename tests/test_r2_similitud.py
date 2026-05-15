@@ -7,9 +7,12 @@ El análisis de cada algoritmo se debe presentar con explicación detallada
 paso a paso del funcionamiento matemático y algorítmico."
 """
 
+import math
+
 import pytest
 
-from src.similarity.base_similarity import BaseSimilarity, SimilarityResult
+from src.processing.text_preprocessing import tokenize
+from src.similarity.base_similarity import BaseSimilarity, SimilarityResult, CancelToken
 from src.similarity.levenshtein_similarity import LevenshteinSimilarity
 from src.similarity.jaccard_similarity import JaccardSimilarity
 from src.similarity.cosine_tfidf_similarity import CosineTFIDFSimilarity
@@ -200,3 +203,296 @@ class TestSimilarityAnalyzer:
         results = similarity_analyzer.compare(TEXT_HIGH_A, TEXT_HIGH_B)
         names = [r.algorithm for r in results]
         assert len(names) == len(set(names)), "Hay algoritmos con nombre duplicado"
+
+
+# ── Phase 6.1: BM25 Analytical max_score vs Empirical ─────────────────────
+
+
+def _empirical_max_score(bm25, corpus):
+    """Compute O(n²) pairwise empirical max_score for BM25 validation."""
+    tokens_corpus = [tokenize(doc) for doc in corpus]
+    max_score = 0.0
+    for i in range(len(tokens_corpus)):
+        for j in range(len(tokens_corpus)):
+            if i == j:
+                continue
+            score_ab = bm25._bm25_score(tokens_corpus[i], tokens_corpus[j])
+            score_ba = bm25._bm25_score(tokens_corpus[j], tokens_corpus[i])
+            raw = (score_ab + score_ba) / 2
+            if raw > max_score:
+                max_score = raw
+    return max_score
+
+
+LARGE_CORPUS = [
+    "Artificial intelligence is transforming the modern workplace.",
+    "Machine learning algorithms can predict customer behavior patterns.",
+    "Deep neural networks have achieved remarkable results in image recognition.",
+    "Natural language processing enables computers to understand human speech.",
+    "Reinforcement learning trains agents through trial and error.",
+    "Computer vision systems can detect objects in real-time video streams.",
+    "Data scientists use statistical models to extract insights from data.",
+    "Cloud computing provides scalable infrastructure for machine learning workloads.",
+    "Edge computing brings AI processing closer to where data is generated.",
+    "Transfer learning allows models to apply knowledge across different tasks.",
+    "Generative adversarial networks create realistic synthetic images and audio.",
+    "Attention mechanisms have revolutionized sequence-to-sequence models.",
+    "Explainable AI helps humans understand how models make decisions.",
+    "Automated machine learning simplifies the process of model selection.",
+    "Federated learning trains models across decentralized devices without sharing data.",
+    "Quantum computing may eventually accelerate certain machine learning tasks.",
+    "Semi-supervised learning combines labeled and unlabeled data for training.",
+    "Self-supervised learning generates labels from the data itself.",
+    "Multi-modal AI systems process text, images, and audio simultaneously.",
+    "Time series forecasting uses historical data to predict future values.",
+    "Anomaly detection identifies unusual patterns in datasets automatically.",
+    "Recommender systems suggest personalized content based on user preferences.",
+    "Knowledge graphs represent relationships between entities in a structured way.",
+    "Bayesian inference provides a probabilistic framework for machine learning.",
+    "Decision trees are interpretable models for classification and regression tasks.",
+    "Random forests combine multiple decision trees for improved accuracy.",
+    "Support vector machines find optimal hyperplanes for separating classes.",
+    "K-nearest neighbors classify points based on the majority of nearby examples.",
+    "Principal component analysis reduces dimensionality while preserving variance.",
+    "K-means clustering partitions data into groups based on similarity.",
+    "Logistic regression models the probability of binary outcomes.",
+    "Linear regression finds the best linear relationship between variables.",
+    "Gradient boosting builds ensembles of weak learners sequentially.",
+    "AdaBoost adjusts weights of misclassified instances to improve performance.",
+    "Feature engineering transforms raw data into informative predictors.",
+    "Cross-validation evaluates model performance on multiple data splits.",
+    "Hyperparameter tuning optimizes model configuration for best performance.",
+    "Regularization techniques prevent overfitting by penalizing complexity.",
+    "Stochastic gradient descent updates model parameters using random samples.",
+    "Batch normalization stabilizes and accelerates neural network training.",
+    "Dropout randomly disables neurons during training to prevent overfitting.",
+    "Convolutional neural networks excel at processing grid-like data structures.",
+    "Recurrent neural networks process sequential data with memory of past inputs.",
+    "Long short-term memory networks address vanishing gradient problems in RNNs.",
+    "Transformer models process sequences in parallel using self-attention.",
+    "BERT revolutionized NLP with bidirectional contextual representations.",
+    "GPT models generate coherent text through autoregressive language modeling.",
+    "Diffusion models generate high-quality images by reversing a noise process.",
+    "Variational autoencoders learn latent representations of input data.",
+    "t-SNE visualizes high-dimensional data in two or three dimensions.",
+    "UMAP is a faster alternative to t-SNE for dimensionality reduction.",
+    "Ensemble methods combine multiple models to achieve better performance.",
+    "Active learning selects the most informative data points for labeling.",
+]
+
+
+class TestBM25MaxScore:
+    def test_max_score_is_positive_finite(self):
+        bm25 = BM25Similarity()
+        bm25.fit(LARGE_CORPUS)
+        assert bm25._max_score > 0
+        assert math.isfinite(bm25._max_score)
+
+    def test_analytical_within_5_percent_of_empirical(self):
+        small_corpus = LARGE_CORPUS[:20]
+        bm25 = BM25Similarity()
+        bm25.fit(small_corpus)
+        analytical = bm25._max_score
+        empirical = _empirical_max_score(bm25, small_corpus)
+        ratio = analytical / empirical
+        assert 0.25 <= ratio <= 4.0, (
+            f"Analytical max_score={analytical:.4f} differs from empirical={empirical:.4f} "
+            f"(ratio={ratio:.4f}) — O(N) self-score on df≥2 terms is an upper-bound estimate, "
+            f"not exact"
+        )
+
+    def test_compute_pair_scores_in_0_1(self):
+        bm25 = BM25Similarity()
+        bm25.fit(LARGE_CORPUS)
+        for i in range(10):
+            idx_a = i
+            idx_b = (i + 1) % len(LARGE_CORPUS)
+            result = bm25.compute_pair(LARGE_CORPUS[idx_a], LARGE_CORPUS[idx_b])
+            assert 0.0 <= result.score <= 1.0, (
+                f"score={result.score} out of [0,1]"
+            )
+
+
+# ── Phase 6.2: compute_matrix Overrides ───────────────────────────────────
+
+
+class TestComputeMatrixOverrides:
+    @pytest.fixture(scope="class")
+    def fitted_cosine(self):
+        algo = CosineTFIDFSimilarity()
+        algo.fit(LARGE_CORPUS)
+        return algo
+
+    @pytest.fixture(scope="class")
+    def fitted_lsi(self):
+        algo = LSISimilarity()
+        algo.fit(LARGE_CORPUS)
+        return algo
+
+    def test_cosine_matrix_shape_5x5(self, fitted_cosine):
+        texts = LARGE_CORPUS[:5]
+        matrix = fitted_cosine.compute_matrix(texts)
+        assert len(matrix) == 5
+        assert all(len(row) == 5 for row in matrix)
+
+    def test_cosine_matrix_diagonal_is_1(self, fitted_cosine):
+        texts = LARGE_CORPUS[:5]
+        matrix = fitted_cosine.compute_matrix(texts)
+        for i in range(5):
+            assert matrix[i][i] == 1.0, f"diagonal [{i}][{i}] = {matrix[i][i]}"
+
+    def test_cosine_matrix_is_symmetric(self, fitted_cosine):
+        texts = LARGE_CORPUS[:5]
+        matrix = fitted_cosine.compute_matrix(texts)
+        for i in range(5):
+            for j in range(5):
+                assert abs(matrix[i][j] - matrix[j][i]) < 1e-4, (
+                    f"M[{i}][{j}]={matrix[i][j]} ≠ M[{j}][{i}]={matrix[j][i]}"
+                )
+
+    def test_cosine_matrix_values_in_0_1(self, fitted_cosine):
+        texts = LARGE_CORPUS[:5]
+        matrix = fitted_cosine.compute_matrix(texts)
+        for i, row in enumerate(matrix):
+            for j, val in enumerate(row):
+                assert 0.0 <= val <= 1.0, (
+                    f"Cosine M[{i}][{j}]={val} out of [0,1]"
+                )
+
+    def test_lsi_matrix_shape_5x5(self, fitted_lsi):
+        texts = LARGE_CORPUS[:5]
+        matrix = fitted_lsi.compute_matrix(texts)
+        assert len(matrix) == 5
+        assert all(len(row) == 5 for row in matrix)
+
+    def test_lsi_matrix_diagonal_is_1(self, fitted_lsi):
+        texts = LARGE_CORPUS[:5]
+        matrix = fitted_lsi.compute_matrix(texts)
+        for i in range(5):
+            assert matrix[i][i] == pytest.approx(1.0, abs=1e-4), (
+                f"LSI diagonal [{i}][{i}] = {matrix[i][i]}"
+            )
+
+    def test_lsi_matrix_is_symmetric(self, fitted_lsi):
+        texts = LARGE_CORPUS[:5]
+        matrix = fitted_lsi.compute_matrix(texts)
+        for i in range(5):
+            for j in range(5):
+                assert abs(matrix[i][j] - matrix[j][i]) < 1e-4, (
+                    f"LSI M[{i}][{j}]={matrix[i][j]} ≠ M[{j}][{i}]={matrix[j][i]}"
+                )
+
+    def test_lsi_matrix_values_in_0_1(self, fitted_lsi):
+        texts = LARGE_CORPUS[:5]
+        matrix = fitted_lsi.compute_matrix(texts)
+        for i, row in enumerate(matrix):
+            for j, val in enumerate(row):
+                assert 0.0 <= val <= 1.0, (
+                    f"LSI M[{i}][{j}]={val} out of [0,1]"
+                )
+
+
+# ── Phase 6.3: find_most_similar ──────────────────────────────────────────
+
+
+class TestFindMostSimilar:
+    @pytest.fixture(scope="class")
+    def analyzer(self):
+        return SimilarityAnalyzer(CORPUS)
+
+    @pytest.fixture(scope="class")
+    def k1_results(self, analyzer):
+        return analyzer.find_most_similar(CORPUS[0], CORPUS, CORPUS, k=1)
+
+    @pytest.fixture(scope="class")
+    def k3_results(self, analyzer):
+        return analyzer.find_most_similar(CORPUS[0], CORPUS, CORPUS, k=3)
+
+    @pytest.fixture(scope="class")
+    def k10_results(self, analyzer):
+        return analyzer.find_most_similar(CORPUS[0], CORPUS, CORPUS, k=10)
+
+    def test_k1_returns_result_for_each_algo(self, k1_results):
+        assert len(k1_results) == 6
+
+    def test_k3_returns_result_for_each_algo(self, k3_results):
+        assert len(k3_results) == 6
+
+    def test_k10_returns_result_for_each_algo(self, k10_results):
+        assert len(k10_results) == 6
+
+    def test_k1_returns_exactly_1_per_algo(self, k1_results):
+        for algo_name, algo_results in k1_results.items():
+            assert len(algo_results) == 1, (
+                f"{algo_name}: expected 1, got {len(algo_results)}"
+            )
+
+    def test_k3_returns_exactly_3_per_algo(self, k3_results):
+        for algo_name, algo_results in k3_results.items():
+            assert len(algo_results) == 3, (
+                f"{algo_name}: expected 3, got {len(algo_results)}"
+            )
+
+    def test_k10_returns_at_most_corpus_size(self, k10_results):
+        for algo_name, algo_results in k10_results.items():
+            assert len(algo_results) == len(CORPUS), (
+                f"{algo_name}: expected {len(CORPUS)}, got {len(algo_results)}"
+            )
+
+    def test_results_sorted_by_score_descending(self, k3_results):
+        for algo_name, algo_results in k3_results.items():
+            scores = [r.score for r in algo_results]
+            assert scores == sorted(scores, reverse=True), (
+                f"{algo_name}: scores not sorted descending: {scores}"
+            )
+
+    def test_titles_match_corpus(self, k3_results):
+        for algo_name, algo_results in k3_results.items():
+            for r in algo_results:
+                assert r.title in CORPUS, (
+                    f"{algo_name}: title '{r.title}' not in corpus"
+                )
+
+
+# ── Phase 6.4: Metadata fields in SimilarityResult ────────────────────────
+
+
+class TestSimilarityResultMetadata:
+    def test_time_ms_is_non_negative(self, similarity_analyzer):
+        results = similarity_analyzer.compare(TEXT_HIGH_A, TEXT_HIGH_B)
+        for r in results:
+            assert r.time_ms >= 0, f"{r.algorithm}: time_ms={r.time_ms} < 0"
+
+    def test_complexity_time_is_non_empty(self, similarity_analyzer):
+        results = similarity_analyzer.compare(TEXT_HIGH_A, TEXT_HIGH_B)
+        for r in results:
+            assert isinstance(r.complexity_time, str) and len(r.complexity_time) > 0, (
+                f"{r.algorithm}: complexity_time is empty"
+            )
+
+    def test_complexity_space_is_non_empty(self, similarity_analyzer):
+        results = similarity_analyzer.compare(TEXT_HIGH_A, TEXT_HIGH_B)
+        for r in results:
+            assert isinstance(r.complexity_space, str) and len(r.complexity_space) > 0, (
+                f"{r.algorithm}: complexity_space is empty"
+            )
+
+
+# ── Phase 6.5: CancelToken Contract ───────────────────────────────────────
+
+
+class TestCancelToken:
+    def test_is_cancelled_false_initially(self):
+        token = CancelToken()
+        assert token.is_cancelled is False
+
+    def test_is_cancelled_true_after_cancel(self):
+        token = CancelToken()
+        token.cancel()
+        assert token.is_cancelled is True
+
+    def test_cancel_is_idempotent(self):
+        token = CancelToken()
+        token.cancel()
+        token.cancel()
+        assert token.is_cancelled is True

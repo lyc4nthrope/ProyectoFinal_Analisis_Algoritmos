@@ -18,6 +18,9 @@ class BM25Similarity(BaseSimilarity):
     Para similitud simétrica: promedia score(A→B) y score(B→A), normalizado al máximo del corpus.
     """
 
+    COMPLEXITY_TIME = "O(N²·L)"
+    COMPLEXITY_SPACE = "O(N + V)"
+
     def __init__(self) -> None:
         self._corpus_tokens: list[list[str]] = []
         self._avg_dl: float = 0.0
@@ -34,26 +37,28 @@ class BM25Similarity(BaseSimilarity):
             sum(len(t) for t in self._corpus_tokens) / len(self._corpus_tokens)
             if self._corpus_tokens else 1.0
         )
-        self._idf = self._compute_idf(self._corpus_tokens)
-        all_scores = [
-            self._bm25_score(t_a, t_b)
-            for t_a in self._corpus_tokens
-            for t_b in self._corpus_tokens
-            if t_a is not t_b
-        ]
-        self._max_score = max(all_scores) if all_scores else 1.0
+        self._idf, self._df = self._compute_idf(self._corpus_tokens)
+        max_self = 0.0
+        for tokens in self._corpus_tokens:
+            filtered = [t for t in tokens if self._df.get(t, 0) >= 2]
+            if filtered:
+                score = self._bm25_score(filtered, filtered)
+                if score > max_self:
+                    max_self = score
+        self._max_score = max_self if max_self > 0 else 1.0
         return self
 
-    def _compute_idf(self, tokenized_corpus: list[list[str]]) -> dict[str, float]:
+    def _compute_idf(self, tokenized_corpus: list[list[str]]) -> tuple[dict[str, float], dict[str, int]]:
         n = len(tokenized_corpus)
         df: dict[str, int] = {}
         for tokens in tokenized_corpus:
             for term in set(tokens):
                 df[term] = df.get(term, 0) + 1
-        return {
+        idf = {
             term: math.log((n - freq + 0.5) / (freq + 0.5) + 1)
             for term, freq in df.items()
         }
+        return idf, df
 
     def _bm25_score(self, query_tokens: list[str], doc_tokens: list[str]) -> float:
         doc_len = len(doc_tokens)

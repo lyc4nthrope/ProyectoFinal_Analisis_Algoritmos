@@ -31,3 +31,27 @@ def render() -> None:
         labels.append("Base de datos")
     display.columns = labels
     st.dataframe(display, width="stretch", hide_index=True)
+
+    st.divider()
+    with st.expander("⚠️ Zona de peligro"):
+        st.warning("Borrar el corpus elimina TODOS los artículos integrados. Esta acción no se puede deshacer.")
+        if st.button("🗑️ Borrar corpus"):
+            st.session_state.confirmar_borrado = True
+
+        if st.session_state.get("confirmar_borrado"):
+            col_si, col_no = st.columns(2)
+            with col_si:
+                if st.button("✅ Sí, borrar todo", type="primary"):
+                    from pathlib import Path
+                    from src.config import PROCESSED_DIR
+                    path = PROCESSED_DIR / "unified.csv"
+                    if path.exists():
+                        path.unlink()
+                    st.cache_data.clear()
+                    st.cache_resource.clear()
+                    st.session_state.confirmar_borrado = False
+                    st.rerun()
+            with col_no:
+                if st.button("❌ Cancelar"):
+                    st.session_state.confirmar_borrado = False
+                    st.rerun()

@@ -97,7 +97,7 @@ class ApiParser:
         except ValueError as e:
             raise ValueError("OpenAlex devolvió JSON inválido") from e
 
-        time.sleep(1)
+        # Sin sleep — la UI ya controla el ritmo con st.rerun()
 
         if data is None:
             return {"results": [], "total": 0, "next_cursor": None}

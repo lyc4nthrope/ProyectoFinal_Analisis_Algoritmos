@@ -10,6 +10,9 @@ class LevenshteinSimilarity(BaseSimilarity):
     Complejidad: O(n × m) donde n y m son la cantidad de tokens de cada texto.
     """
 
+    COMPLEXITY_TIME = "O(n × m)"
+    COMPLEXITY_SPACE = "O(min(n, m))"
+
     @property
     def name(self) -> str:
         return "Levenshtein (Word Edit Distance)"

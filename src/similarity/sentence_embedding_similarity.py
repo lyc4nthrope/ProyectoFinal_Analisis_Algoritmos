@@ -19,6 +19,9 @@ class SentenceEmbeddingSimilarity(BaseSimilarity):
     y calcula la matriz completa sin duplicar codificaciones.
     """
 
+    COMPLEXITY_TIME = "O(N·d)"
+    COMPLEXITY_SPACE = "O(N·d)"
+
     def __init__(self, model_name: str = _MODEL_NAME) -> None:
         self._model_name = model_name
         self._model: SentenceTransformer | None = None

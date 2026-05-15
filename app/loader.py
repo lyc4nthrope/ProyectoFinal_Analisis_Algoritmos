@@ -20,7 +20,7 @@ def load_corpus() -> pd.DataFrame:
         run()
     if not path.exists():
         return pd.DataFrame()
-    return pd.read_csv(path).fillna("")
+    return pd.read_csv(path, on_bad_lines="skip").fillna("")
 
 
 @st.cache_resource

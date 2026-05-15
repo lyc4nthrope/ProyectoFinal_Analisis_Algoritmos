@@ -22,6 +22,9 @@ class LSISimilarity(BaseSimilarity):
       4. Similitud coseno en el espacio semántico
     """
 
+    COMPLEXITY_TIME = "O(N·V·k)"
+    COMPLEXITY_SPACE = "O(N·k)"
+
     def __init__(self, n_components: int = _N_COMPONENTS) -> None:
         self._n_components = n_components
         self._vectorizer: TfidfVectorizer | None = None
@@ -74,3 +77,12 @@ class LSISimilarity(BaseSimilarity):
         ]
 
         return SimilarityResult(algorithm=self.name, score=score, steps=steps)
+
+    def compute_matrix(self, texts: list[str]) -> list[list[float]]:
+        import numpy as np
+        from sklearn.preprocessing import normalize
+        processed = [to_string(t) for t in texts]
+        tfidf = self._vectorizer.transform(processed)
+        semantic = normalize(self._svd.transform(tfidf))
+        matrix = np.dot(semantic, semantic.T)
+        return [[round(float(max(0.0, v)), 4) for v in row] for row in matrix]

@@ -33,8 +33,8 @@ def load_articles(files: list[tuple[str, Path]]) -> list[dict]:
 
 def save_results(unique: list[dict], duplicates: list[dict], processed_dir: Path) -> None:
     processed_dir.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(unique).to_csv(processed_dir / "unified.csv", index=False, encoding="utf-8")
-    pd.DataFrame(duplicates).to_csv(processed_dir / "duplicates.csv", index=False, encoding="utf-8")
+    pd.DataFrame(unique).to_csv(processed_dir / "unified.csv", index=False, encoding="utf-8", quoting=1)
+    pd.DataFrame(duplicates).to_csv(processed_dir / "duplicates.csv", index=False, encoding="utf-8", quoting=1)
 
 
 def run(api_query: str | None = None, on_api_error: Callable | None = None) -> None:
