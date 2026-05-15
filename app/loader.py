@@ -18,36 +18,46 @@ def load_corpus() -> pd.DataFrame:
     if not path.exists():
         from src.processing.unifier import run
         run()
+    if not path.exists():
+        return pd.DataFrame()
     return pd.read_csv(path).fillna("")
 
 
 @st.cache_resource
-def get_similarity_analyzer() -> SimilarityAnalyzer:
-    abstracts = load_corpus()["abstract"].tolist()
-    return SimilarityAnalyzer(abstracts)
-
-
-@st.cache_resource
-def get_concept_analyzer() -> ConceptAnalyzer:
-    abstracts = load_corpus()["abstract"].tolist()
-    return ConceptAnalyzer(abstracts)
-
-
-@st.cache_resource
-def get_clustering_analyzer() -> ClusteringAnalyzer:
+def get_similarity_analyzer() -> SimilarityAnalyzer | None:
     df = load_corpus()
+    if df.empty:
+        return None
+    return SimilarityAnalyzer(df["abstract"].tolist())
+
+
+@st.cache_resource
+def get_concept_analyzer() -> ConceptAnalyzer | None:
+    df = load_corpus()
+    if df.empty:
+        return None
+    return ConceptAnalyzer(df["abstract"].tolist())
+
+
+@st.cache_resource
+def get_clustering_analyzer() -> ClusteringAnalyzer | None:
+    df = load_corpus()
+    if df.empty:
+        return None
     return ClusteringAnalyzer(df["abstract"].tolist(), df["title"].tolist())
 
 
-def save_api_cache(query: str, results: list[dict]) -> None:
+def save_api_cache(query: str, max_results: int, results: list[dict]) -> None:
     cache_dir = RAW_DIR / "api_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    hash_key = hashlib.sha256(query.encode()).hexdigest()[:16]
+    raw = f"{query}|{max_results}"
+    hash_key = hashlib.sha256(raw.encode()).hexdigest()[:16]
     cache_file = cache_dir / f"{hash_key}.json"
 
     cache_data = {
         "query": query,
+        "max_results": max_results,
         "cached_at": datetime.now().isoformat(),
         "results": results,
     }
@@ -56,9 +66,10 @@ def save_api_cache(query: str, results: list[dict]) -> None:
         json.dump(cache_data, f, ensure_ascii=False, indent=2)
 
 
-def load_api_cache(query: str) -> list[dict] | None:
+def load_api_cache(query: str, max_results: int) -> list[dict] | None:
     cache_dir = RAW_DIR / "api_cache"
-    hash_key = hashlib.sha256(query.encode()).hexdigest()[:16]
+    raw = f"{query}|{max_results}"
+    hash_key = hashlib.sha256(raw.encode()).hexdigest()[:16]
     cache_file = cache_dir / f"{hash_key}.json"
 
     if not cache_file.exists():

@@ -9,6 +9,9 @@ def render() -> None:
     st.title("Análisis de conceptos GenAI")
 
     analyzer = get_concept_analyzer()
+    if analyzer is None:
+        st.warning("📭 No hay datos en el corpus. Usá la sección 'Búsqueda API' para buscar artículos e integrarlos al corpus.")
+        return
 
     st.subheader("Frecuencia de conceptos en el corpus")
     freq_results = analyzer.frequency_analysis()

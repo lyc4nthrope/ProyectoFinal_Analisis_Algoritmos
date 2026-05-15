@@ -96,7 +96,7 @@ class ApiParser:
         authors = "; ".join(
             a["author"]["display_name"]
             for a in work.get("authorships", [])
-            if (a.get("author") or {}).get("display_name")
+            if a and (a.get("author") or {}).get("display_name")
         )
         # keywords[] → lista de keywords, cada una con display_name
         keywords = "; ".join(
@@ -109,7 +109,7 @@ class ApiParser:
         last = (work.get("biblio") or {}).get("last_page")
         pages = f"{first}-{last}" if first and last else ""
         # issn → lista, tomamos el primer elemento si existe
-        issn_list = (work.get("primary_location") or {}).get("source", {}).get("issn", [])
+        issn_list = ((work.get("primary_location") or {}).get("source") or {}).get("issn", [])
         issn = issn_list[0] if issn_list else ""
         # publication_year → viene como entero, lo pasamos a string
         year = work.get("publication_year")
@@ -122,9 +122,9 @@ class ApiParser:
             "authors": authors,                                          # work.authorships[].author.display_name
             "keywords": keywords,                                        # work.keywords[].display_name
             "year": str(year) if year is not None else "",               # work.publication_year
-            "journal": (work.get("primary_location") or {}).get(             # work.primary_location.source.display_name
-                "source", {}
-            ).get("display_name", ""),
+            "journal": ((work.get("primary_location") or {}).get("source") or {}).get(  # work.primary_location.source.display_name
+                "display_name", ""
+            ),
             "doi": work.get("doi", ""),                                  # work.doi
             "url": (work.get("primary_location") or {}).get(                 # work.primary_location.landing_page_url
                 "landing_page_url", ""

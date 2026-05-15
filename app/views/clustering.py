@@ -10,6 +10,9 @@ def render() -> None:
     st.title("Clustering jerárquico")
 
     analyzer = get_clustering_analyzer()
+    if analyzer is None:
+        st.warning("📭 No hay datos en el corpus. Usá la sección 'Búsqueda API' para buscar artículos e integrarlos al corpus.")
+        return
 
     with st.spinner("Calculando los tres métodos de agrupamiento..."):
         all_results = analyzer.run_all()

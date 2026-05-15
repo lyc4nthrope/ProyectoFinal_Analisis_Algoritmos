@@ -11,6 +11,9 @@ def render() -> None:
     st.title("Visualizaciones bibliométricas")
 
     df = load_corpus()
+    if df.empty:
+        st.warning("📭 No hay datos en el corpus. Usá la sección 'Búsqueda API' para buscar artículos e integrarlos al corpus.")
+        return
     abstracts = df["abstract"].tolist()
     keywords = df["keywords"].tolist()
 

@@ -21,7 +21,7 @@ def render() -> None:
     max_results = st.slider(
         "Cantidad de resultados",
         min_value=5,
-        max_value=50,
+        max_value=200,
         value=25,
         step=5,
         key="api_max_results",
@@ -31,7 +31,7 @@ def render() -> None:
         if not query or not query.strip():
             st.warning("⚠️ Ingrese un término de búsqueda.")
         else:
-            cached = load_api_cache(query)
+            cached = load_api_cache(query, max_results)
 
             if cached is not None:
                 st.session_state.api_results = cached
@@ -44,7 +44,7 @@ def render() -> None:
                         parser = ApiParser()
                         results = parser.search(query, max_results)
                         st.session_state.api_results = results
-                        save_api_cache(query, results)
+                        save_api_cache(query, max_results, results)
                         st.info("🌐 Búsqueda en vivo")
                     except (ConnectionError, requests.HTTPError) as e:
                         st.error(f"❌ Error al conectar con OpenAlex: {e}")
@@ -71,8 +71,8 @@ def render() -> None:
         df_display = df[list(available_cols.keys())].copy()
         df_display.columns = list(available_cols.values())
 
-        if "api_selection" not in st.session_state:
-            st.session_state.api_selection = [False] * len(results)
+        todos = st.checkbox("✅ Seleccionar todos", key="api_select_all")
+        df_display["seleccionar"] = todos
 
         edited_df = st.data_editor(
             df_display,
@@ -97,26 +97,23 @@ def render() -> None:
 
         if selected_count > 0:
             if st.button("📥 Integrar al corpus", type="primary"):
-                selected_indices = [
-                    i for i, (_, row) in enumerate(edited_df.iterrows())
+                selected = [
+                    row for _, row in edited_df.iterrows()
                     if row.get("seleccionar", False)
                 ]
-                selected_articles = [results[i] for i in selected_indices]
+                if not selected:
+                    st.warning("Seleccioná al menos un artículo para integrar.")
+                else:
+                    from pathlib import Path
 
-                with st.spinner("Integrando resultados al corpus..."):
-                    try:
-                        from src.processing.unifier import fetch_and_merge_api, run
+                    processed_dir = Path("data/processed")
+                    processed_dir.mkdir(parents=True, exist_ok=True)
+                    path = processed_dir / "unified.csv"
 
-                        fetch_and_merge_api(
-                            articles=[],
-                            direct_results=selected_articles,
-                        )
+                    result_df = pd.DataFrame(selected)
+                    if "seleccionar" in result_df.columns:
+                        result_df = result_df.drop(columns=["seleccionar"])
+                    result_df.to_csv(path, index=False)
 
-                        run()
-                        st.success(
-                            f"✅ {len(selected_articles)} resultado(s) integrado(s) "
-                            "al corpus exitosamente"
-                        )
-                        st.cache_data.clear()
-                    except Exception as e:
-                        st.error(f"❌ Error al integrar: {e}")
+                    st.cache_data.clear()
+                    st.success(f"✅ {len(selected)} artículo(s) integrado(s) al corpus. Recargá la vista Inicio para verlos.")

@@ -9,6 +9,9 @@ def render() -> None:
     st.caption("Compara dos artículos usando 6 algoritmos de similitud textual.")
 
     df = load_corpus()
+    if df.empty:
+        st.warning("📭 No hay datos en el corpus. Usá la sección 'Búsqueda API' para buscar artículos e integrarlos al corpus.")
+        return
     titles = df["title"].tolist()
     abstracts = df["abstract"].tolist()
 
