@@ -2,9 +2,9 @@
 
 ## Descripcion general del proyecto
 
-En este proyecto busco desarrollar una aplicacion orientada al analisis bibliometrico de publicaciones cientificas relacionadas con el tema **"generative artificial intelligence"**. La idea principal es tomar informacion proveniente de bases de datos academicas, organizarla, limpiarla y despues aplicar distintos algoritmos para analizar el contenido de los articulos, especialmente sus **abstracts**, palabras clave, autores, revistas y anos de publicacion.
+En este proyecto se busca desarrollar una aplicacion orientada al analisis bibliometrico de publicaciones cientificas relacionadas con el tema **"generative artificial intelligence"**. La idea principal es tomar informacion proveniente de bases de datos academicas, organizarla, limpiarla y despues aplicar distintos algoritmos para analizar el contenido de los articulos, especialmente sus **abstracts**, palabras clave, autores, revistas y anos de publicacion.
 
-Desde mi perspectiva como estudiante, este proyecto no se trata solo de construir una aplicacion que muestre datos, sino de entender como los **algoritmos** pueden ayudar a estudiar la produccion cientifica en un dominio especifico del conocimiento. En este caso, el dominio escogido es la inteligencia artificial generativa, un tema actual y con mucha produccion academica.
+Este proyecto no se trata solo de construir una aplicacion que muestre datos, sino de entender como los **algoritmos** pueden ayudar a estudiar la produccion cientifica en un dominio especifico del conocimiento. En este caso, el dominio escogido es la inteligencia artificial generativa, un tema actual y con mucha produccion academica.
 
 ## De que trata el proyecto
 
@@ -24,7 +24,7 @@ En otras palabras, el proyecto busca transformar un conjunto grande de articulos
 
 ## Para que sirve
 
-Considero que este proyecto sirve para comprender mejor como se esta investigando el tema de la inteligencia artificial generativa dentro de la literatura cientifica. No se trata unicamente de recopilar articulos, sino de responder preguntas importantes como:
+El proyecto sirve para comprender mejor como se esta investigando el tema de la inteligencia artificial generativa dentro de la literatura cientifica. No se trata unicamente de recopilar articulos, sino de responder preguntas importantes como:
 
 - Que articulos se parecen mas entre si.
 - Que conceptos aparecen con mayor frecuencia.
@@ -37,23 +37,23 @@ Por eso, el valor del proyecto esta en combinar una vision academica con una imp
 
 ## Objetivo principal
 
-Mi objetivo con este proyecto es implementar una aplicacion que permita realizar un **analisis bibliometrico y computacional** sobre publicaciones cientificas relacionadas con inteligencia artificial generativa, apoyandome en distintos algoritmos de comparacion, agrupamiento y analisis textual.
+El objetivo con este proyecto es implementar una aplicacion que permita realizar un **analisis bibliometrico y computacional** sobre publicaciones cientificas relacionadas con inteligencia artificial generativa, apoyandome en distintos algoritmos de comparacion, agrupamiento y analisis textual.
 
-Tambien busco que el proyecto no quede solo en el nivel teorico, sino que pueda ser desplegado y documentado correctamente, de manera que cualquier persona pueda entender su arquitectura, su funcionamiento y las decisiones tecnicas tomadas durante el desarrollo.
+Tambien que el proyecto no quede solo en el nivel teorico, sino que pueda ser desplegado y documentado correctamente, de manera que cualquier persona pueda entender su arquitectura, su funcionamiento y las decisiones tecnicas tomadas durante el desarrollo.
 
 ## Requerimientos del proyecto explicados
 
 ### 1. Automatizacion de la descarga y unificacion de datos
 
-El primer requerimiento consiste en automatizar la obtencion de informacion desde dos bases de datos cientificas. Despues de descargar los resultados, debo unificar toda la informacion en un solo archivo, evitando que un mismo producto aparezca repetido.
+El primer requerimiento consiste en automatizar la obtencion de informacion desde dos bases de datos cientificas. Despues de descargar los resultados, unificar toda la informacion en un solo archivo, evitando que un mismo producto aparezca repetido.
 
-Esto significa que si un articulo se encuentra en ambas fuentes, el sistema debe identificarlo, consolidar su informacion y dejar una sola instancia valida. Ademas, tambien debo generar otro archivo donde queden registrados los productos duplicados que fueron eliminados.
+Esto significa que si un articulo se encuentra en ambas fuentes, el sistema debe identificarlo, consolidar su informacion y dejar una sola instancia valida. Ademas, tambien hay que generar otro archivo donde queden registrados los productos duplicados que fueron eliminados.
 
 Este punto es importante porque antes de analizar cualquier informacion se necesita tener un conjunto de datos limpio, consistente y bien estructurado.
 
 ### 2. Implementacion de algoritmos de similitud textual
 
-En este requerimiento debo implementar **cuatro algoritmos clasicos de similitud textual** y **dos algoritmos basados en inteligencia artificial**. La aplicacion debe permitir seleccionar dos o mas articulos, extraer sus abstracts y comparar que tan similares son entre si.
+En este requerimiento se debe implementar **cuatro algoritmos clasicos de similitud textual** y **dos algoritmos basados en inteligencia artificial**. La aplicacion debe permitir seleccionar dos o mas articulos, extraer sus abstracts y comparar que tan similares son entre si.
 
 Aqui no basta con obtener un resultado numerico. Tambien debo explicar de manera detallada el funcionamiento matematico y algoritmico de cada metodo, mostrando paso a paso como se calcula la similitud.
 
@@ -61,7 +61,7 @@ Este requerimiento es importante porque permite estudiar diferentes formas de co
 
 ### 3. Analisis de frecuencia de conceptos y nuevas palabras asociadas
 
-En este punto debo trabajar con una categoria especifica: **Concepts of Generative AI in Education**, junto con una lista de palabras asociadas como:
+En este punto hay que trabajar con una categoria especifica: **Concepts of Generative AI in Education**, junto con una lista de palabras asociadas como:
 
 - Generative models
 - Prompting
@@ -79,15 +79,15 @@ En este punto debo trabajar con una categoria especifica: **Concepts of Generati
 - AI literacy
 - Co-creation
 
-Lo que debo hacer es calcular cuantas veces aparecen esas palabras dentro de los abstracts de los articulos. Luego, debo aplicar un algoritmo que analice todos los abstracts y genere un listado de nuevas palabras asociadas, con un maximo de 15 terminos. Finalmente, debo determinar que tan precisas son esas nuevas palabras generadas.
+Lo que hay que hacer es calcular cuantas veces aparecen esas palabras dentro de los abstracts de los articulos. Luego, debo aplicar un algoritmo que analice todos los abstracts y genere un listado de nuevas palabras asociadas, con un maximo de 15 terminos. Finalmente, determinar que tan precisas son esas nuevas palabras generadas.
 
 Este requerimiento combina conteo de frecuencia, extraccion de terminos relevantes y evaluacion de resultados.
 
 ### 4. Agrupamiento jerarquico de abstracts
 
-Aqui debo implementar **tres algoritmos de clustering jerarquico** para construir un dendrograma que represente la similitud entre abstracts cientificos. Para lograrlo, primero debo hacer un preprocesamiento del texto, luego calcular una medida de similitud o distancia, despues aplicar los algoritmos de agrupamiento y finalmente representar visualmente los grupos obtenidos.
+Aqui se debe implementar **tres algoritmos de clustering jerarquico** para construir un dendrograma que represente la similitud entre abstracts cientificos. Para lograrlo, primero hay que hacer un preprocesamiento del texto, luego calcular una medida de similitud o distancia, despues aplicar los algoritmos de agrupamiento y finalmente representar visualmente los grupos obtenidos.
 
-Ademas, debo analizar cual de los algoritmos produce agrupamientos mas coherentes. Este punto es clave porque no solo implica programar, sino tambien interpretar la calidad de los resultados.
+Ademas, se debe analizar cual de los algoritmos produce agrupamientos mas coherentes. Este punto es clave porque no solo implica programar, sino tambien interpretar la calidad de los resultados.
 
 ### 5. Visualizacion de la produccion cientifica
 
@@ -104,27 +104,10 @@ Esta parte del proyecto es importante porque convierte los datos procesados en r
 
 Finalmente, el proyecto debe quedar desplegado y respaldado con documentacion tecnica. Esto significa que no solo debo hacer que la aplicacion funcione, sino tambien explicar claramente su arquitectura, los componentes que la integran, los algoritmos usados y la forma en que se resolvio cada requerimiento.
 
-Desde mi punto de vista, esta parte es fundamental porque demuestra que el proyecto fue desarrollado con una estructura clara y con criterio de ingenieria.
+Esta parte es fundamental porque demuestra que el proyecto fue desarrollado con una estructura clara y con criterio de ingenieria.
 
-## Mi interpretacion del proyecto
 
-Yo entiendo este proyecto como una combinacion de varias areas:
-
-- Analisis de algoritmos, porque debo comparar tecnicas, justificar su uso y estudiar su comportamiento.
-- Ciencia de datos, porque trabajare con limpieza, transformacion y analisis de informacion.
-- Procesamiento de lenguaje natural, porque los abstracts y palabras clave son texto que necesita ser procesado.
-- Bibliometria, porque el objetivo final es estudiar la produccion cientifica.
-- Desarrollo de software, porque debo convertir todo lo anterior en una aplicacion funcional.
-
-Por eso considero que el proyecto no debe verse solo como una aplicacion visual, sino como una solucion integral donde los algoritmos tienen un papel central.
-
-## Se puede hacer en Python?
-
-Si, considero que **Python es una excelente opcion** para desarrollar este proyecto. De hecho, es probablemente uno de los lenguajes mas adecuados por la cantidad de librerias disponibles para ciencia de datos, analisis de texto, visualizacion, clustering y desarrollo de aplicaciones.
-
-Python me permitiria implementar todos los requerimientos de forma organizada y con herramientas bastante solidas.
-
-## Por que Python es una buena opcion
+## Lenguaje usado: Python
 
 Python es util para este proyecto por varias razones:
 
@@ -135,11 +118,11 @@ Python es util para este proyecto por varias razones:
 - Permite crear graficos, mapas y reportes con librerias como `matplotlib`, `seaborn`, `plotly`, `folium` y `wordcloud`.
 - Tambien permite crear una aplicacion web de manera relativamente sencilla con `Streamlit`, `Flask` o `FastAPI`.
 
-En general, Python me da un entorno muy completo para resolver tanto la parte algoritmica como la parte visual del proyecto.
+En general, Python nos da un entorno muy completo para resolver tanto la parte algoritmica como la parte visual del proyecto.
 
-## Posible enfoque de desarrollo en Python
+## Enfoque de desarrollo en Python
 
-Si desarrollo este proyecto en Python, una estructura posible seria dividirlo en modulos como los siguientes:
+La estructura es en modulos:
 
 - `data_sources/`: para la descarga o importacion de informacion desde bases de datos.
 - `processing/`: para limpieza, normalizacion y eliminacion de duplicados.
@@ -150,11 +133,9 @@ Si desarrollo este proyecto en Python, una estructura posible seria dividirlo en
 - `app/`: para la interfaz de usuario.
 - `docs/`: para la documentacion tecnica y academica.
 
-Esta organizacion permitiria mantener el proyecto ordenado, escalable y mas facil de explicar en la entrega final.
-
 ## Estructura de carpetas del proyecto
 
-Con base en lo que entiendo del proyecto y pensando en una implementacion en Python, decidi organizar el repositorio con una estructura inicial que permita separar responsabilidades desde el comienzo:
+Se debe organizar el repositorio con una estructura inicial que permita separar responsabilidades desde el comienzo:
 
 ```text
 ProyectoFinal_Analisis_Algoritmos/
@@ -174,7 +155,7 @@ ProyectoFinal_Analisis_Algoritmos/
 └── tests/
 ```
 
-Yo interpreto esta estructura de la siguiente manera:
+Significado de las carpetas, es decir, la estructura del proyecto:
 
 - `app/`: aqui puedo desarrollar la interfaz o punto de entrada de la aplicacion.
 - `data/raw/`: aqui puedo guardar los archivos originales descargados desde las bases de datos.
@@ -191,7 +172,7 @@ Yo interpreto esta estructura de la siguiente manera:
 
 ## Como funciona la estructura de carpetas
 
-La estructura de carpetas del proyecto va a funcionar separando cada parte segun su responsabilidad. Yo considero que esta organizacion es importante porque evita mezclar datos, codigo fuente, documentacion, resultados exportados y pruebas en un mismo lugar. De esta forma, el proyecto se vuelve mas claro, mas facil de mantener y tambien mas facil de trabajar en equipo.
+La estructura de carpetas del proyecto va a funcionar separando cada parte segun su responsabilidad. Considerando que esta organizacion es importante porque evita mezclar datos, codigo fuente, documentacion, resultados exportados y pruebas en un mismo lugar. De esta forma, el proyecto se vuelve mas claro, mas facil de mantener y tambien mas facil de trabajar en equipo.
 
 En este caso, la estructura quedo organizada con **6 carpetas principales**:
 
@@ -221,7 +202,7 @@ Si ademas cuento las subcarpetas internas que ya hacen parte de la base del proy
 
 ## Para que sirve cada carpeta
 
-Yo entiendo el uso de cada carpeta de la siguiente manera:
+El uso de cada carpeta de la siguiente manera:
 
 - `app/`: aqui iria la aplicacion principal o la interfaz desde donde se ejecuta el sistema.
 - `data/`: aqui se concentra toda la informacion usada por el proyecto.
@@ -238,49 +219,9 @@ Yo entiendo el uso de cada carpeta de la siguiente manera:
 - `src/visualization/`: aqui se construyen los componentes visuales del proyecto.
 - `tests/`: aqui se ubican las pruebas para validar el comportamiento del sistema.
 
-## Por que esta estructura le sirve al proyecto
-
-Yo considero que esta estructura si le sirve al proyecto porque el trabajo tiene varias etapas claramente diferenciadas:
-
-1. Obtener datos.
-2. Limpiarlos y organizarlos.
-3. Analizar similitud entre textos.
-4. Extraer frecuencia de palabras y terminos asociados.
-5. Agrupar abstracts.
-6. Visualizar resultados.
-7. Documentar y validar el sistema.
-
-Si todo eso se desarrollara en una sola carpeta, el proyecto se volveria desordenado rapidamente. En cambio, con esta organizacion cada parte tiene un lugar definido y eso ayuda tanto al desarrollo como a la explicacion academica del trabajo.
-
-## Flujo del proyecto usando las carpetas
-
-La manera en que yo visualizo el funcionamiento del proyecto con esta estructura es la siguiente:
-
-1. Los archivos originales ingresan a `data/raw/`.
-2. Luego se limpian y transforman para pasar a `data/processed/`.
-3. Los modulos dentro de `src/` usan esa informacion para hacer comparaciones, analisis, clustering y visualizacion.
-4. La carpeta `app/` conecta esos modulos y permite ejecutar la aplicacion.
-5. Los resultados finales se guardan en `exports/`.
-6. Las explicaciones tecnicas y academicas quedan en `docs/`.
-7. Las validaciones del sistema se organizan en `tests/`.
-
-Desde mi punto de vista, esta estructura no solo ayuda a programar mejor, sino tambien a presentar el proyecto de una manera mucho mas profesional y entendible.
-
-## Estrategia de ramas en GitHub y local
-
-Para trabajar este proyecto entre **Cristhian y Daniel**, considero que es conveniente usar una estrategia de ramas que ayude a mantener orden, trazabilidad y estabilidad tanto en local como en GitHub.
-
-La estrategia que voy a seguir es esta:
-
-- `main`: me sirve para proteger la version estable y evitar mezclar trabajo incompleto con la entrega final.
-- `develop`: me sirve como punto de integracion continua antes de publicar cambios.
-- `feature/*`: me permite que cada integrante trabaje por separado, con mejor trazabilidad y menos conflictos.
-- `release/preproduccion`: me permite validar una entrega antes de considerarla lista para produccion.
-- `hotfix/produccion`: me permite atender fallos urgentes sin alterar el flujo normal de desarrollo.
-
 ## Ramas propuestas para el equipo
 
-Teniendo en cuenta que en el proyecto estamos **Cristhian y Daniel**, la base de ramas queda planteada de esta forma:
+Teniendo en cuenta que en el proyecto estamos **Cristhian Eduardo Osorio Restrepo y Daniel Stiven Perez Cordoba**, la base de ramas queda planteada de esta forma:
 
 - `main`
 - `develop`
@@ -289,7 +230,7 @@ Teniendo en cuenta que en el proyecto estamos **Cristhian y Daniel**, la base de
 - `release/preproduccion`
 - `hotfix/produccion`
 
-Yo considero que esta organizacion es util porque permite que cada integrante avance en su propia rama de trabajo y despues integre cambios en `develop`. Una vez el proyecto este mas estable, los cambios pueden pasar a `release/preproduccion` para validacion, y cuando todo este aprobado, se publica en `main`. Si aparece un error critico, se corrige directamente desde `hotfix/produccion`.
+Considerando que esta organizacion es util porque permite que cada integrante avance en su propia rama de trabajo y despues integre cambios en `develop`. Una vez el proyecto este mas estable, los cambios pueden pasar a `release/preproduccion` para validacion, y cuando todo este aprobado, se publica en `main`. Si aparece un error critico, se corrige directamente desde `hotfix/produccion`.
 
 ## Flujo de trabajo que seguire
 
@@ -301,13 +242,11 @@ La idea de trabajo seria la siguiente:
 4. Si la validacion es correcta, se publica en `main`.
 5. Si surge un problema urgente en produccion, se usa `hotfix/produccion`.
 
-Desde mi punto de vista, este flujo ayuda a trabajar de manera mas organizada y reduce el riesgo de dañar la version estable del proyecto.
+Este flujo ayuda a trabajar de manera mas organizada y reduce el riesgo de dañar la version estable del proyecto.
 
 ## Conclusion
 
-En conclusion, este proyecto busca aplicar algoritmos al analisis de publicaciones cientificas sobre inteligencia artificial generativa, integrando recoleccion de datos, limpieza, comparacion textual, agrupamiento, visualizacion y documentacion. Yo lo entiendo como un proyecto academico bastante completo, porque combina teoria, implementacion y capacidad de analisis.
-
-Tambien concluyo que **si es totalmente viable hacerlo en Python**, ya que este lenguaje ofrece las herramientas necesarias para cumplir con todos los requerimientos del proyecto de forma clara, modular y profesional.
+En conclusion, este proyecto busca aplicar algoritmos al analisis de publicaciones cientificas sobre inteligencia artificial generativa, integrando recoleccion de datos, limpieza, comparacion textual, agrupamiento, visualizacion y documentacion. Es un proyecto academico bastante completo, porque combina teoria, implementacion y capacidad de analisis.
 
 ---
 
@@ -398,8 +337,8 @@ data/raw/          ->  src/processing/       ->  data/processed/
 
 ### Bases de datos utilizadas
 
-| Fuente | Formato | Articulos |
-|--------|---------|-----------|
-| ScienceDirect | `.bib` | 25 |
-| EBSCO Academic Search Ultimate | `.bibtex` | 29 |
-| **Total unico** | `unified.csv` | **54** |
+| Fuentes                        |
+
+| ScienceDirect                  |
+| EBSCO Academic Search Ultimate |
+

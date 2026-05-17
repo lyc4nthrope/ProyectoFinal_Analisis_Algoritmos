@@ -72,7 +72,7 @@ def _fetch_country_from_crossref(doi: str) -> str | None:
         response = requests.get(url, headers=_REQUEST_HEADERS, timeout=_REQUEST_TIMEOUT)
         if response.status_code != 200:
             return None
-        authors = response.json().get("message", {}).get("author", [])
+        authors = (response.json() or {}).get("message", {}).get("author", [])
         if not authors:
             return None
         affiliations = authors[0].get("affiliation", [])

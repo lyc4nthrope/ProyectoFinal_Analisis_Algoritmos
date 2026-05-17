@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 
 def _clean_year(value: object) -> int | None:
     try:
-        year = int(str(value).strip())
+        year = int(float(value))
         return year if 1990 <= year <= 2030 else None
     except (ValueError, TypeError):
         return None

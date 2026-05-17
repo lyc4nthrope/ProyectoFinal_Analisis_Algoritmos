@@ -50,9 +50,15 @@ class HierarchicalClustering:
         self._method = method
         self._method_name = LINKAGE_METHODS[method]
 
-    def fit(self, matrix: np.ndarray) -> ClusteringResult:
-        Z = linkage(matrix, method=self._method, metric="euclidean")
-        c = round(float(cophenet(Z, pdist(matrix, metric="euclidean"))[0]), 4)
+    def fit(self, matrix: np.ndarray, precomputed_dist: np.ndarray | None = None) -> ClusteringResult:
+        if precomputed_dist is not None:
+            Z = linkage(precomputed_dist, method=self._method)
+            d = precomputed_dist
+        else:
+            Z = linkage(matrix, method=self._method, metric="euclidean")
+            d = pdist(matrix, metric="euclidean")
+
+        c = round(float(cophenet(Z, d)[0]), 4)
 
         return ClusteringResult(
             method_key=self._method,

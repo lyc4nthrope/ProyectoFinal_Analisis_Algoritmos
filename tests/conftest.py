@@ -3,6 +3,9 @@ Fixtures compartidos para todos los tests del proyecto bibliométrico.
 Los datos de prueba son independientes del corpus real (data/processed/).
 """
 
+import matplotlib
+matplotlib.use("Agg")  # sin GUI — necesario para entornos sin Tk
+
 import pytest
 import pandas as pd
 

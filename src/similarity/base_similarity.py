@@ -1,5 +1,21 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import Callable
+
+
+class CancelToken:
+    def __init__(self) -> None:
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        self._cancelled = True
+
+    @property
+    def is_cancelled(self) -> bool:
+        return self._cancelled
+
+
+ProgressCallback = Callable[[str, str], None]
 
 
 @dataclass
@@ -7,6 +23,10 @@ class SimilarityResult:
     algorithm: str
     score: float
     steps: list[str] = field(default_factory=list)
+    time_ms: float = 0.0
+    complexity_time: str = ""
+    complexity_space: str = ""
+    title: str = ""
 
 
 class BaseSimilarity(ABC):

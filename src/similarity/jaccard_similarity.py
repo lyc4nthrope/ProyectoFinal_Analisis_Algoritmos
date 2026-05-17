@@ -10,6 +10,9 @@ class JaccardSimilarity(BaseSimilarity):
     Complejidad: O(n + m)
     """
 
+    COMPLEXITY_TIME = "O(n + m)"
+    COMPLEXITY_SPACE = "O(n + m)"
+
     @property
     def name(self) -> str:
         return "Jaccard Similarity"

@@ -3,14 +3,15 @@ matplotlib.use("Agg")
 
 import streamlit as st
 
-from app.views import clustering, concepts, export_pdf, overview, similarity, visualization
-
 st.set_page_config(
     page_title="Bibliometría GenAI",
     layout="wide",
 )
 
+from app.views import api_search, clustering, concepts, export_pdf, overview, similarity, visualization
+
 _PAGES = {
+    "Búsqueda API": api_search,
     "Inicio": overview,
     "Similitud": similarity,
     "Conceptos": concepts,

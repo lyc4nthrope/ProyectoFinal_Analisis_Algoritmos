@@ -16,6 +16,9 @@ class CosineTFIDFSimilarity(BaseSimilarity):
     Complejidad: O(V) donde V es el tamaño del vocabulario.
     """
 
+    COMPLEXITY_TIME = "O(V)"
+    COMPLEXITY_SPACE = "O(V)"
+
     def __init__(self) -> None:
         self._vectorizer: TfidfVectorizer | None = None
 
@@ -61,3 +64,10 @@ class CosineTFIDFSimilarity(BaseSimilarity):
         ]
 
         return SimilarityResult(algorithm=self.name, score=score, steps=steps)
+
+    def compute_matrix(self, texts: list[str]) -> list[list[float]]:
+        from sklearn.metrics.pairwise import cosine_similarity
+        processed = [to_string(t) for t in texts]
+        vectors = self._vectorizer.transform(processed)
+        matrix = cosine_similarity(vectors)
+        return [[round(float(v), 4) for v in row] for row in matrix]
