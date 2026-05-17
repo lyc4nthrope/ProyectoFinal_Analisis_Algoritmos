@@ -66,9 +66,21 @@ def _build_cover(pdf: FPDF) -> None:
     )
 
 
+def _add_note_page(pdf: FPDF, title: str, lines: list[str]) -> None:
+    pdf.add_page()
+    pdf.set_font("DejaVu", "B", 13)
+    pdf.cell(0, 10, title, new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
+    pdf.set_font("DejaVu", "", 11)
+    for line in lines:
+        pdf.multi_cell(0, 6, line)
+        pdf.ln(1)
+
+
 def export_report(
     figures: list[tuple[str, go.Figure | MplFigure]],
     filename: str = "informe_bibliometrico.pdf",
+    notes: list[tuple[str, list[str]]] | None = None,
 ) -> Path:
     """
     Genera un PDF con portada y una página por figura.
@@ -76,6 +88,7 @@ def export_report(
     Args:
         figures: lista de (título, figura) donde figura es Plotly o Matplotlib.
         filename: nombre del archivo de salida en exports/.
+        notes: páginas de texto opcionales con notas metodológicas.
 
     Returns:
         Path al PDF generado.
@@ -89,6 +102,9 @@ def export_report(
     _configure_fonts(pdf)
 
     _build_cover(pdf)
+
+    for title, lines in notes or []:
+        _add_note_page(pdf, title, lines)
 
     for title, fig in figures:
         image_bytes = (

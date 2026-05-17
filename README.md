@@ -278,6 +278,11 @@ La aplicacion queda disponible en `http://localhost:8501`.
 
 ### Datos de entrada
 
+La aplicación admite dos formas de ingesta:
+
+- **Automática vía API**: búsqueda en OpenAlex desde la sección `Búsqueda API`.
+- **Complementaria vía exportación**: archivos BibTeX descargados desde bases como ScienceDirect o EBSCO.
+
 Los archivos BibTeX de las bases de datos deben ubicarse en:
 
 ```
@@ -294,24 +299,19 @@ Si `data/processed/unified.csv` no existe al arrancar la app, el sistema lo gene
 ### Flujo de datos
 
 ```
-data/raw/          ->  src/processing/       ->  data/processed/
-(BibTeX)              (parse + dedup)            (unified.csv)
-                            |
-                            v
-                   src/similarity/           ->  Comparacion par a par (6 algoritmos)
-                   src/analysis/             ->  Frecuencia conceptos + TF-IDF + P/R/F1
-                   src/clustering/           ->  Dendrogramas + correlacion cofenotica
-                   src/visualization/        ->  Graficas + PDF
-                            |
-                            v
-                       app/main.py           ->  Interfaz Streamlit (6 secciones)
+OpenAlex API / BibTeX exportado
+          -> src/data_sources/ + src/processing/
+          -> data/processed/unified.csv
+          -> src/similarity/ / src/analysis/ / src/clustering/ / src/visualization/
+          -> app/main.py
 ```
 
 ### Descripcion de modulos
 
 | Modulo | Archivo(s) | Responsabilidad |
 |--------|-----------|-----------------|
-| **R1 — Ingesta** | `src/data_sources/bibtex_parser.py` | Parsea archivos BibTeX de cualquier fuente |
+| **R1 — Ingesta API** | `src/data_sources/api_source.py` | Consulta OpenAlex, pagina resultados y transforma JSON al formato interno |
+| **R1 — Ingesta BibTeX** | `src/data_sources/bibtex_parser.py` | Parsea archivos BibTeX de cualquier fuente |
 | **R1 — Deduplicacion** | `src/processing/deduplication.py` | Exact match O(1) + Levenshtein con umbral 0.90 |
 | **R1 — Unificador** | `src/processing/unifier.py` | Orquesta descubrimiento, carga y guardado del corpus |
 | **R1 — Preprocesamiento** | `src/processing/text_preprocessing.py` | `normalize()`, `tokenize()`, `to_string()` compartidos |
@@ -341,4 +341,3 @@ data/raw/          ->  src/processing/       ->  data/processed/
 
 | ScienceDirect                  |
 | EBSCO Academic Search Ultimate |
-

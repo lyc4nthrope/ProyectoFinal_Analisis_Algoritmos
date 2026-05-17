@@ -195,3 +195,10 @@ class ClusteringAnalyzer:
     def n_clusters(self) -> int:
         """Cantidad de clusters/hojas del dendrograma."""
         return len(self._dendrogram_labels)
+
+    @property
+    def n_documents(self) -> int:
+        return self._corpus.n_docs
+
+    def get_titles_for_indices(self, indices: list[int]) -> list[str]:
+        return [self._titles[i] for i in indices]

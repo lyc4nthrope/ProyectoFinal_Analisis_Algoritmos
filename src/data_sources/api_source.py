@@ -5,6 +5,9 @@ from urllib.parse import urlencode
 
 import requests
 
+DEFAULT_TIMEOUT = 30
+DEFAULT_RETRIES = 3
+
 
 class ApiParser:
     """Parser que consulta la API de OpenAlex y devuelve resultados en formato ARTICLE_FIELDS."""
@@ -19,85 +22,32 @@ class ApiParser:
         if not query or not query.strip():
             return []
 
-        url = self._build_url(query, min(max_results, 200))
-        headers = {
-            "Accept": "application/json",
-            "User-Agent": "Bibliometria-GenAI/0.1.0"
-        }
-
-        all_works = []
+        all_results: list[dict] = []
         total_count = 0
         cursor = "*"
+        page_size = min(max_results, 200)
 
-        while len(all_works) < max_results and cursor:
-            paginated_url = f"{url}&cursor={cursor}"
-
-            try:
-                resp = requests.get(paginated_url, headers=headers, timeout=30)
-            except requests.exceptions.ConnectionError as e:
-                if all_works:
-                    break
-                raise ConnectionError(f"No se pudo conectar con OpenAlex: {e}") from e
-
-            if resp.status_code != 200:
-                if all_works:
-                    break
-                raise requests.HTTPError(
-                    f"OpenAlex responded {resp.status_code}: {resp.reason}"
-                )
-
-            try:
-                data = resp.json()
-            except ValueError as e:
-                if all_works:
-                    break
-                raise ValueError("OpenAlex devolvió JSON inválido") from e
-
-            if data is None:
-                break
-
+        while len(all_results) < max_results and cursor:
+            page_limit = min(max_results - len(all_results), page_size)
+            data = self.fetch_page(query, cursor, page_limit)
             if total_count == 0:
-                total_count = data.get("meta", {}).get("count", 0)
-
+                total_count = data.get("total", 0)
             results = data.get("results", [])
             if not results:
                 break
-
-            all_works.extend(results)
-            cursor = data.get("meta", {}).get("next_cursor")
-
+            all_results.extend(results)
+            cursor = data.get("next_cursor")
             time.sleep(1)
 
         return {
-            "results": [self._to_article(work) for work in all_works[:max_results]],
+            "results": all_results[:max_results],
             "total": total_count,
         }
 
     def fetch_page(self, query: str, cursor: str = "*", per_page: int = 25) -> dict:
         """Fetch a single page of results from OpenAlex."""
         url = self._build_url(query, per_page)
-        headers = {
-            "Accept": "application/json",
-            "User-Agent": "Bibliometria-GenAI/0.1.0"
-        }
-        paginated_url = f"{url}&cursor={cursor}"
-
-        try:
-            resp = requests.get(paginated_url, headers=headers, timeout=30)
-        except requests.exceptions.ConnectionError as e:
-            raise ConnectionError(f"No se pudo conectar con OpenAlex: {e}") from e
-
-        if resp.status_code != 200:
-            raise requests.HTTPError(
-                f"OpenAlex responded {resp.status_code}: {resp.reason}"
-            )
-
-        try:
-            data = resp.json()
-        except ValueError as e:
-            raise ValueError("OpenAlex devolvió JSON inválido") from e
-
-        # Sin sleep — la UI ya controla el ritmo con st.rerun()
+        data = self._request_json(f"{url}&cursor={cursor}")
 
         if data is None:
             return {"results": [], "total": 0, "next_cursor": None}
@@ -111,6 +61,47 @@ class ApiParser:
             "total": total,
             "next_cursor": next_cursor,
         }
+
+    def _request_json(self, url: str) -> dict | None:
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "Bibliometria-GenAI/0.1.0",
+        }
+
+        last_error: Exception | None = None
+        for attempt in range(DEFAULT_RETRIES):
+            try:
+                resp = requests.get(url, headers=headers, timeout=DEFAULT_TIMEOUT)
+            except requests.exceptions.Timeout as e:
+                last_error = TimeoutError(f"OpenAlex no respondió a tiempo: {e}")
+            except requests.exceptions.RequestException as e:
+                last_error = ConnectionError(f"No se pudo conectar con OpenAlex: {e}")
+            else:
+                if resp.status_code == 200:
+                    try:
+                        return resp.json()
+                    except ValueError as e:
+                        raise ValueError("OpenAlex devolvió JSON inválido") from e
+
+                if resp.status_code in {429, 500, 502, 503, 504}:
+                    retry_after = resp.headers.get("Retry-After")
+                    wait_seconds = float(retry_after) if retry_after else (attempt + 1)
+                    last_error = requests.HTTPError(
+                        f"OpenAlex respondió {resp.status_code}: {resp.reason}",
+                    )
+                    if attempt < DEFAULT_RETRIES - 1:
+                        time.sleep(wait_seconds)
+                        continue
+                raise requests.HTTPError(
+                    f"OpenAlex responded {resp.status_code}: {resp.reason}",
+                )
+
+            if attempt < DEFAULT_RETRIES - 1:
+                time.sleep(attempt + 1)
+
+        if last_error is not None:
+            raise last_error
+        return None
 
     def _build_url(self, query: str, max_results: int) -> str:
         """Construye la URL de búsqueda de OpenAlex."""

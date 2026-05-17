@@ -167,3 +167,14 @@ class SimilarityAnalyzer:
                 elapsed_ms = (time.time() - t0) * 1000
                 return (matrix, elapsed_ms)
         return None
+
+    @property
+    def algorithm_options(self) -> list[dict[str, str]]:
+        return [
+            {
+                "name": algo.name,
+                "complexity_time": getattr(algo, "COMPLEXITY_TIME", "?"),
+                "complexity_space": getattr(algo, "COMPLEXITY_SPACE", "?"),
+            }
+            for algo in self._algorithms
+        ]

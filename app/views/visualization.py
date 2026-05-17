@@ -32,7 +32,8 @@ def render() -> None:
     st.subheader("Distribución geográfica (primer autor)")
     st.info(
         "Requiere consultas a la API de CrossRef. "
-        "Los resultados se almacenan en caché local; la primera ejecución puede tardar varios minutos."
+        "Los resultados se almacenan en caché local; la primera ejecución puede tardar varios minutos. "
+        "El país se infiere desde DOI y afiliación del primer autor, por lo que puede haber casos no resueltos."
     )
     if st.button("Cargar mapa geográfico"):
         with st.spinner("Resolviendo países desde CrossRef..."):

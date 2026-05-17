@@ -20,7 +20,7 @@ from src.clustering.hierarchical import (
 )
 from src.clustering.dendrogram import build_dendrogram_figure
 from src.clustering.clustering_analyzer import ClusteringAnalyzer
-from tests.conftest import SAMPLE_ABSTRACTS, SAMPLE_TITLES
+from .conftest import SAMPLE_ABSTRACTS, SAMPLE_TITLES
 
 
 # ── Spec: exactamente 3 métodos de enlace ────────────────────────────────────

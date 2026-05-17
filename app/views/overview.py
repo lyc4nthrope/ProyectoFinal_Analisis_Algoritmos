@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from app.loader import load_corpus
+from src.repositories import clear_corpus
 
 
 def render() -> None:
@@ -42,11 +43,7 @@ def render() -> None:
             col_si, col_no = st.columns(2)
             with col_si:
                 if st.button("✅ Sí, borrar todo", type="primary"):
-                    from pathlib import Path
-                    from src.config import PROCESSED_DIR
-                    path = PROCESSED_DIR / "unified.csv"
-                    if path.exists():
-                        path.unlink()
+                    clear_corpus()
                     st.cache_data.clear()
                     st.cache_resource.clear()
                     st.session_state.confirmar_borrado = False

@@ -28,7 +28,7 @@ def render() -> None:
     n_clusters = analyzer.n_clusters
     if analyzer.strategy == "two-tier":
         st.info(
-            f"📊 Corpus grande ({analyzer._corpus.n_docs:,} docs): se usó **K-Means** "
+            f"📊 Corpus grande ({analyzer.n_documents:,} docs): se usó **K-Means** "
             f"para reducir a {n_clusters} clusters, y luego clustering jerárquico "
             f"sobre los centroides. El dendrograma muestra {n_clusters} hojas.",
         )
@@ -98,7 +98,7 @@ def render() -> None:
             else:
                 # Fallback: mostrar solo títulos desde el analyzer
                 st.dataframe(
-                    pd.DataFrame({"Título": [analyzer._titles[i] for i in doc_indices]}),
+                    pd.DataFrame({"Título": analyzer.get_titles_for_indices(doc_indices)}),
                     width="stretch", hide_index=True, height=400,
                 )
 

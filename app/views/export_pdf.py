@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import streamlit as st
 
 from app.loader import load_corpus
+from src.visualization.geo_heatmap import build_country_counts, build_heatmap_figure
 from src.visualization.pdf_exporter import export_report
 from src.visualization.timeline_chart import build_year_timeline, build_journal_timeline
 from src.visualization.wordcloud_chart import build_wordcloud_figure
@@ -14,11 +15,16 @@ def render() -> None:
     include_year = st.checkbox("Publicaciones por año", value=True)
     include_journal = st.checkbox("Publicaciones por revista (top 10)", value=True)
     include_wordcloud = st.checkbox("Nube de palabras", value=True)
+    include_geo = st.checkbox("Mapa geográfico (primer autor)", value=True)
+    st.caption(
+        "Nota: país inferido desde DOI y afiliación del primer autor vía CrossRef. "
+        "Puede haber registros sin resolución geográfica."
+    )
 
     if not st.button("Generar PDF", type="primary"):
         return
 
-    if not any([include_year, include_journal, include_wordcloud]):
+    if not any([include_year, include_journal, include_wordcloud, include_geo]):
         st.warning("Selecciona al menos una visualización.")
         return
 
@@ -31,6 +37,16 @@ def render() -> None:
 
     figures = []
     matplotlib_figs = []
+    notes = [
+        (
+            "Nota metodológica",
+            [
+                "Las visualizaciones se generan directamente desde unified.csv y corpus cargado en la aplicación.",
+                "El mapa geográfico infiere país del primer autor usando DOI, CrossRef y afiliación disponible.",
+                "Si un DOI no resuelve o la afiliación no contiene país reconocible, el registro se excluye del mapa.",
+            ],
+        ),
+    ]
 
     with st.spinner("Generando PDF..."):
         if include_year:
@@ -41,8 +57,18 @@ def render() -> None:
             fig_wc = build_wordcloud_figure(abstracts, keywords)
             figures.append(("Nube de palabras — abstracts y keywords", fig_wc))
             matplotlib_figs.append(fig_wc)
+        if include_geo:
+            counts = build_country_counts(df)
+            if counts.empty:
+                st.warning("No se pudo resolver información geográfica suficiente para el PDF.")
+            else:
+                figures.append(("Distribución geográfica (primer autor)", build_heatmap_figure(counts)))
 
-        output_path = export_report(figures, filename="informe_bibliometrico.pdf")
+        output_path = export_report(
+            figures,
+            filename="informe_bibliometrico.pdf",
+            notes=notes,
+        )
 
     for fig in matplotlib_figs:
         plt.close(fig)

@@ -8,11 +8,10 @@ from src.similarity.base_similarity import CancelToken
 
 
 def _algo_dropdown_options(analyzer) -> list[str]:
-    options = []
-    for algo in analyzer._algorithms:
-        ct = getattr(algo, "COMPLEXITY_TIME", "?")
-        options.append(f"{algo.name} — {ct}")
-    return options
+    return [
+        f"{option['name']} — {option['complexity_time']}"
+        for option in analyzer.algorithm_options
+    ]
 
 
 def _parse_algo_name(dropdown_value: str) -> str:

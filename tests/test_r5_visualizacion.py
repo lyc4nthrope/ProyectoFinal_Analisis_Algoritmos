@@ -79,6 +79,10 @@ class TestNubeDePalabras:
 # ── Exportación a PDF ─────────────────────────────────────────────────────────
 
 class TestExportacionPDF:
+    def _count_pdf_pages(self, path) -> int:
+        content = path.read_bytes()
+        return content.count(b"/Type /Page")
+
     def test_export_report_crea_archivo(self, sample_abstracts, tmp_path, monkeypatch):
         """Exporta solo figuras Matplotlib para evitar dependencia de kaleido en tests."""
         from src.visualization import pdf_exporter
@@ -141,3 +145,32 @@ class TestExportacionPDF:
         output_path = export_report([("Test", fig)], filename="mi_informe.pdf")
 
         assert output_path.name == "mi_informe.pdf"
+
+    def test_export_report_incluye_portada_y_nota(self, sample_abstracts, tmp_path, monkeypatch):
+        from src.visualization import pdf_exporter
+
+        monkeypatch.setattr(pdf_exporter, "_EXPORTS_DIR", tmp_path)
+
+        fig = build_wordcloud_figure(sample_abstracts, [])
+        output_path = export_report(
+            [("Nube de palabras", fig)],
+            filename="with_note.pdf",
+            notes=[("Nota metodológica", ["Linea 1", "Linea 2"])],
+        )
+
+        assert self._count_pdf_pages(output_path) >= 3
+
+    def test_export_report_multiples_figuras_y_nota_suman_paginas(self, sample_abstracts, tmp_path, monkeypatch):
+        from src.visualization import pdf_exporter
+
+        monkeypatch.setattr(pdf_exporter, "_EXPORTS_DIR", tmp_path)
+
+        fig1 = build_wordcloud_figure(sample_abstracts, [])
+        fig2 = build_wordcloud_figure(sample_abstracts[:5], [])
+        output_path = export_report(
+            [("Figura 1", fig1), ("Figura 2", fig2)],
+            filename="coverage.pdf",
+            notes=[("Nota metodológica", ["Linea unica"])],
+        )
+
+        assert self._count_pdf_pages(output_path) >= 4

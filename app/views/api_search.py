@@ -1,32 +1,25 @@
-"""Vista de búsqueda en OpenAlex API.
-
-Los resultados se guardan en un archivo JSONL en disco para no saturar
-la RAM ni el session_state de Streamlit (que se serializa por WebSocket
-en cada rerun). La vista de resultados se pagina de a 50 registros.
-"""
-
-import json
-from pathlib import Path
+"""Vista de búsqueda en OpenAlex API."""
 
 import pandas as pd
 import streamlit as st
 
-from src.data_sources import ApiParser
+from src.repositories import integrate_articles
+from src.services import ApiSearchService, ApiSearchStore
 
 # ── Constantes ──────────────────────────────────────────────────────────────
 
-MAX_AUTO_FETCH = 10_000
 PAGE_SIZE = 50
-RESULTS_FILE = Path("data/raw/api_cache") / "search_results.jsonl"
 # Tiempo estimado por página (request + parse) en segundos
 SECS_PER_PAGE = 2.0
+STORE = ApiSearchStore()
+SERVICE = ApiSearchService()
 
 
-# ── Helpers JSONL ───────────────────────────────────────────────────────────
+# ── Helpers estado ──────────────────────────────────────────────────────────
 
 def _cleanup() -> None:
-    """Borra archivo temporal y todo el estado de búsqueda."""
-    RESULTS_FILE.unlink(missing_ok=True)
+    """Borra resultados temporales y todo el estado de búsqueda."""
+    STORE.clear()
     keys = [
         "api_result_count", "api_searching", "api_cursor",
         "api_total", "api_target", "api_first_fetch", "api_limit",
@@ -35,37 +28,6 @@ def _cleanup() -> None:
     ]
     for k in keys:
         st.session_state.pop(k, None)
-
-
-def _append_jsonl(results: list[dict]) -> None:
-    """Append resultados al archivo JSONL."""
-    RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(RESULTS_FILE, "a", encoding="utf-8") as f:
-        for r in results:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-
-
-def _read_jsonl_slice(start: int, count: int) -> list[dict]:
-    """Lee un slice de resultados del JSONL sin cargar todo en memoria."""
-    results = []
-    with open(RESULTS_FILE, "r", encoding="utf-8") as f:
-        for i, line in enumerate(f):
-            if i < start:
-                continue
-            if len(results) >= count:
-                break
-            results.append(json.loads(line))
-    return results
-
-
-def _read_all_jsonl() -> list[dict]:
-    """Lee TODOS los resultados del JSONL (solo para integrar al corpus)."""
-    results = []
-    with open(RESULTS_FILE, "r", encoding="utf-8") as f:
-        for line in f:
-            results.append(json.loads(line))
-    return results
-
 
 # ── Vista ───────────────────────────────────────────────────────────────────
 
@@ -106,17 +68,16 @@ def render() -> None:
             # llamada rápida (?per_page=1) y mostramos confirmación si
             # supera un umbral.
             if fetch_all:
-                parser = ApiParser()
                 try:
-                    quick = parser.fetch_page(q, "*", 1)
+                    quick = SERVICE.fetch_total_preview(q)
                 except Exception as e:
                     st.error(f"❌ No se pudo conectar con OpenAlex: {e}")
-                    st.stop()
+                    return
 
                 total_avail = quick["total"]
                 # Ya tenemos la primera página, la guardamos
                 _cleanup()
-                _append_jsonl(quick["results"])
+                STORE.append(quick["results"])
                 st.session_state.api_result_count = len(quick["results"])
                 st.session_state.api_total = total_avail
                 st.session_state.api_cursor = quick.get("next_cursor")
@@ -175,10 +136,7 @@ def render() -> None:
         with col2:
             if st.button("❌ Cancelar"):
                 _cleanup()
-                st.info("Búsqueda cancelada. Se conservan los primeros resultados obtenidos.")
-                # Los primeros resultados (per_page=1) no son útiles,
-                # mejor limpiar todo
-                RESULTS_FILE.unlink(missing_ok=True)
+                st.info("Búsqueda cancelada. Se limpiaron los resultados temporales.")
                 st.rerun()
 
     # ── Bucle de paginación ──────────────────────────────────────────
@@ -203,15 +161,22 @@ def render() -> None:
                      f"(total en OpenAlex: {st.session_state.get('api_total', 0):,})",
             )
 
-        parser = ApiParser()
         try:
-            data = parser.fetch_page(
-                st.session_state.api_query_value,
-                st.session_state.api_cursor,
-                200,
+            data = SERVICE.fetch_next_page(
+                query=st.session_state.api_query_value,
+                cursor=st.session_state.api_cursor,
+                fetch_all=st.session_state.get("api_fetch_all", False),
+                limit=st.session_state.get("api_limit", 0),
+                loaded=loaded_sofar,
+                target=target,
+                first_fetch=st.session_state.get("api_first_fetch", False),
             )
         except Exception as e:
-            st.error(f"❌ {e}")
+            st.error(f"❌ La búsqueda se pausó por un error: {e}")
+            st.session_state.api_searching = False
+            st.rerun()
+
+        if data is None:
             st.session_state.api_searching = False
             st.rerun()
 
@@ -225,7 +190,7 @@ def render() -> None:
             st.session_state.api_target = target
 
         new_results = data["results"]
-        _append_jsonl(new_results)
+        STORE.append(new_results)
         st.session_state.api_result_count = (
             st.session_state.get("api_result_count", 0) + len(new_results)
         )
@@ -253,7 +218,7 @@ def render() -> None:
     st.divider()
 
     # ── Resultados paginados ───────────────────────────────────────────
-    if (RESULTS_FILE.exists()
+    if (STORE.exists()
             and st.session_state.get("api_result_count", 0) > 0
             and not st.session_state.get("api_searching")):
 
@@ -288,7 +253,7 @@ def render() -> None:
 
         # Leer SOLO la página actual del archivo
         start = page * PAGE_SIZE
-        page_results = _read_jsonl_slice(start, PAGE_SIZE)
+        page_results = STORE.read_slice(start, PAGE_SIZE)
 
         df = pd.DataFrame(page_results)
         display_cols = {
@@ -337,7 +302,7 @@ def render() -> None:
 
         if selected_count > 0:
             if st.button("📥 Integrar al corpus", type="primary"):
-                all_results = _read_all_jsonl()
+                all_results = STORE.read_all()
                 selected_results = [
                     r for i, r in enumerate(all_results) if i in new_selected
                 ]
@@ -345,20 +310,7 @@ def render() -> None:
                 if not selected_results:
                     st.warning("Seleccioná al menos un artículo para integrar.")
                 else:
-                    processed_dir = Path("data/processed")
-                    processed_dir.mkdir(parents=True, exist_ok=True)
-                    path = processed_dir / "unified.csv"
-
-                    nuevos = pd.DataFrame(selected_results)
-                    if path.exists():
-                        existentes = pd.read_csv(path)
-                        corpus = pd.concat([existentes, nuevos], ignore_index=True)
-                        corpus = corpus.drop_duplicates(subset="doi", keep="first")
-                    else:
-                        corpus = nuevos
-
-                    corpus.to_csv(path, index=False, quoting=1)
-                    total_corpus = len(corpus)
+                    _, total_corpus = integrate_articles(selected_results)
 
                     st.cache_data.clear()
                     st.cache_resource.clear()
