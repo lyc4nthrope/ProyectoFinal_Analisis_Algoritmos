@@ -79,8 +79,6 @@ class LSISimilarity(BaseSimilarity):
         return SimilarityResult(algorithm=self.name, score=score, steps=steps)
 
     def compute_matrix(self, texts: list[str]) -> list[list[float]]:
-        import numpy as np
-        from sklearn.preprocessing import normalize
         processed = [to_string(t) for t in texts]
         tfidf = self._vectorizer.transform(processed)
         semantic = normalize(self._svd.transform(tfidf))

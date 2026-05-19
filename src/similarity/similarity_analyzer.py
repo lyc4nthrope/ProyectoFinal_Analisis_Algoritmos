@@ -1,6 +1,5 @@
 import heapq
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.similarity.base_similarity import BaseSimilarity, SimilarityResult, CancelToken, ProgressCallback
 from src.similarity.levenshtein_similarity import LevenshteinSimilarity
@@ -25,6 +24,13 @@ def _build_algorithms(corpus: list[str]) -> list[BaseSimilarity]:
     return algorithms
 
 
+def _annotate(algo: BaseSimilarity, result: SimilarityResult, elapsed_ms: float) -> SimilarityResult:
+    result.time_ms = elapsed_ms
+    result.complexity_time = getattr(algo, "COMPLEXITY_TIME", "")
+    result.complexity_space = getattr(algo, "COMPLEXITY_SPACE", "")
+    return result
+
+
 class SimilarityAnalyzer:
     def __init__(self, corpus: list[str]) -> None:
         self._algorithms = _build_algorithms(corpus)
@@ -34,15 +40,8 @@ class SimilarityAnalyzer:
         for algo in self._algorithms:
             t0 = time.time()
             result = algo.compute_pair(text_a, text_b)
-            elapsed_ms = (time.time() - t0) * 1000
-            result.time_ms = elapsed_ms
-            result.complexity_time = getattr(algo, 'COMPLEXITY_TIME', '')
-            result.complexity_space = getattr(algo, 'COMPLEXITY_SPACE', '')
-            results.append(result)
+            results.append(_annotate(algo, result, (time.time() - t0) * 1000))
         return results
-
-    def compare_matrix(self, texts: list[str]) -> dict[str, list[list[float]]]:
-        return {algo.name: algo.compute_matrix(texts) for algo in self._algorithms}
 
     def find_most_similar(
         self,
@@ -59,19 +58,19 @@ class SimilarityAnalyzer:
             if cancel_token and cancel_token.is_cancelled:
                 break
 
-            algo_name = algo.name
             if progress_callback:
-                progress_callback(algo_name, "Buscando documentos similares...")
+                progress_callback(algo.name, "Buscando documentos similares...")
 
             t0 = time.time()
-
             heap: list[tuple[float, int]] = []
+            result_cache: dict[int, SimilarityResult] = {}
 
             for i, corpus_text in enumerate(corpus_texts):
                 if cancel_token and cancel_token.is_cancelled:
                     break
 
                 result = algo.compute_pair(text, corpus_text)
+                result_cache[i] = result
 
                 if len(heap) < k:
                     heapq.heappush(heap, (result.score, i))
@@ -81,71 +80,16 @@ class SimilarityAnalyzer:
             if cancel_token and cancel_token.is_cancelled:
                 break
 
+            elapsed_ms = (time.time() - t0) * 1000
             top_k = sorted(heap, key=lambda x: -x[0])
 
             algo_results: list[SimilarityResult] = []
-            for score, idx in top_k:
-                corpus_result = algo.compute_pair(text, corpus_texts[idx])
-                corpus_result.time_ms = (time.time() - t0) * 1000 / len(top_k)
-                corpus_result.complexity_time = getattr(algo, 'COMPLEXITY_TIME', '')
-                corpus_result.complexity_space = getattr(algo, 'COMPLEXITY_SPACE', '')
-                corpus_result.title = corpus_titles[idx] if idx < len(corpus_titles) else ""
-                algo_results.append(corpus_result)
+            for _score, idx in top_k:
+                r = result_cache[idx]
+                r.title = corpus_titles[idx] if idx < len(corpus_titles) else ""
+                algo_results.append(_annotate(algo, r, elapsed_ms / max(len(top_k), 1)))
 
-            elapsed_ms = (time.time() - t0) * 1000
-            results[algo_name] = algo_results
-
-        return results
-
-    def compare_all_async(
-        self,
-        text_a: str,
-        text_b: str,
-        cancel_token: CancelToken | None = None,
-        progress_callback: ProgressCallback | None = None,
-    ) -> list[SimilarityResult]:
-        results: list[SimilarityResult] = []
-
-        for algo in self._algorithms:
-            if cancel_token and cancel_token.is_cancelled:
-                break
-
-            algo_name = algo.name
-            if progress_callback:
-                progress_callback(algo_name, "Calculando...")
-
-            t0 = time.time()
-            result = algo.compute_pair(text_a, text_b)
-            elapsed_ms = (time.time() - t0) * 1000
-
-            result.time_ms = elapsed_ms
-            result.complexity_time = getattr(algo, 'COMPLEXITY_TIME', '')
-            result.complexity_space = getattr(algo, 'COMPLEXITY_SPACE', '')
-            results.append(result)
-
-        return results
-
-    def compare_matrix_async(
-        self,
-        texts: list[str],
-        cancel_token: CancelToken | None = None,
-        progress_callback: ProgressCallback | None = None,
-    ) -> dict[str, tuple[list[list[float]], float]]:
-        results: dict[str, tuple[list[list[float]], float]] = {}
-
-        for algo in self._algorithms:
-            if cancel_token and cancel_token.is_cancelled:
-                break
-
-            algo_name = algo.name
-            if progress_callback:
-                progress_callback(algo_name, "Calculando matriz de similitud...")
-
-            t0 = time.time()
-            matrix = algo.compute_matrix(texts)
-            elapsed_ms = (time.time() - t0) * 1000
-
-            results[algo_name] = (matrix, elapsed_ms)
+            results[algo.name] = algo_results
 
         return results
 
@@ -164,8 +108,7 @@ class SimilarityAnalyzer:
                     progress_callback(algo.name, "Calculando matriz de similitud...")
                 t0 = time.time()
                 matrix = algo.compute_matrix(texts)
-                elapsed_ms = (time.time() - t0) * 1000
-                return (matrix, elapsed_ms)
+                return (matrix, (time.time() - t0) * 1000)
         return None
 
     @property

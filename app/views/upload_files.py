@@ -1,5 +1,6 @@
 """Vista para cargar archivos BibTeX de bases de datos académicas."""
 
+import pandas as pd
 import streamlit as st
 
 from src.config import RAW_DIR
@@ -36,7 +37,6 @@ def _show_current_sources() -> None:
                 rows.append({"Fuente": source_dir.name, "Archivo": f.name})
 
     if rows:
-        import pandas as pd
         st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
     else:
         st.info("No hay archivos .bib en data/raw/.")

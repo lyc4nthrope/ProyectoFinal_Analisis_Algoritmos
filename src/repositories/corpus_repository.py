@@ -39,10 +39,9 @@ def integrate_articles(
     corpus.to_csv(path, index=False, quoting=1)
 
     if not new_dups.empty:
-        dups_path = path.parent / "duplicates.csv"
-        existing_dups = load_duplicates_df(dups_path)
+        existing_dups = load_duplicates_df()
         all_dups = pd.concat([existing_dups, new_dups], ignore_index=True)
-        all_dups.to_csv(dups_path, index=False, quoting=1)
+        all_dups.to_csv(DUPLICATES_PATH, index=False, quoting=1)
 
     return len(incoming), len(corpus)
 
@@ -51,9 +50,8 @@ def clear_corpus(path: Path = CORPUS_PATH) -> bool:
     if not path.exists():
         return False
     path.unlink()
-    dups_path = path.parent / "duplicates.csv"
-    if dups_path.exists():
-        dups_path.unlink()
+    if DUPLICATES_PATH.exists():
+        DUPLICATES_PATH.unlink()
     return True
 
 
