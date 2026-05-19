@@ -48,7 +48,7 @@ with st.sidebar:
         icons=_ICONS,
         default_index=0,
         styles={
-            "container": {"padding": "0", "background-color": "transparent"},
+            "container": {"padding": "0", "margin-top": "-20px", "background-color": "transparent"},
             "nav-link": {"font-size": "0.9rem", "text-align": "left", "margin": "1px 0"},
             "nav-link-selected": {"background-color": "rgba(255,255,255,0.12)", "font-weight": "600"},
         },
