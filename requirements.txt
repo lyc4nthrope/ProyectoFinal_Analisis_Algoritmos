@@ -28,3 +28,4 @@ requests
 
 # Aplicación web
 streamlit
+streamlit-option-menu

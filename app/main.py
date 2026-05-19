@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import streamlit as st
+from streamlit_option_menu import option_menu
 
 st.set_page_config(
     page_title="Bibliometría GenAI",
@@ -21,15 +22,30 @@ _PAGES = {
     "Exportar PDF": export_pdf,
 }
 
+_ICONS = [
+    "house",
+    "cloud-upload",
+    "search",
+    "diagram-2",
+    "lightbulb",
+    "diagram-3",
+    "bar-chart-line",
+    "file-earmark-pdf",
+]
+
 with st.sidebar:
-    st.title("Bibliometría GenAI")
+    page_name = option_menu(
+        menu_title="Bibliometría GenAI",
+        options=list(_PAGES.keys()),
+        icons=_ICONS,
+        menu_icon="book",
+        default_index=0,
+    )
     st.caption(
         "Universidad del Quindío  \n"
         "Análisis de Algoritmos  \n\n"
         "Daniel Stiven Perez Cordoba  \n"
         "Cristhian Eduardo Osorio Restrepo"
     )
-    st.divider()
-    page_name = st.radio("Sección", list(_PAGES.keys()), label_visibility="collapsed")
 
 _PAGES[page_name].render()
