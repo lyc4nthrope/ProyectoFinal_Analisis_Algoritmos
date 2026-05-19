@@ -24,9 +24,9 @@ _PAGES = {
 with st.sidebar:
     st.title("Bibliometría GenAI")
     st.caption(
-        "Universidad del Quindío\n"
-        "Análisis de Algoritmos\n\n"
-        "Daniel Stiven Perez Cordoba\n"
+        "Universidad del Quindío  \n"
+        "Análisis de Algoritmos  \n\n"
+        "Daniel Stiven Perez Cordoba  \n"
         "Cristhian Eduardo Osorio Restrepo"
     )
     st.divider()
