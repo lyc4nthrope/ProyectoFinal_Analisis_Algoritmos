@@ -34,18 +34,24 @@ _ICONS = [
 ]
 
 with st.sidebar:
-    page_name = option_menu(
-        menu_title="Bibliometría GenAI",
-        options=list(_PAGES.keys()),
-        icons=_ICONS,
-        menu_icon="book",
-        default_index=0,
-    )
+    st.title("Bibliometría GenAI")
     st.caption(
         "Universidad del Quindío  \n"
         "Análisis de Algoritmos  \n\n"
         "Daniel Stiven Perez Cordoba  \n"
         "Cristhian Eduardo Osorio Restrepo"
+    )
+    st.divider()
+    page_name = option_menu(
+        menu_title=None,
+        options=list(_PAGES.keys()),
+        icons=_ICONS,
+        default_index=0,
+        styles={
+            "container": {"padding": "0", "background-color": "transparent"},
+            "nav-link": {"font-size": "0.9rem", "text-align": "left", "margin": "1px 0"},
+            "nav-link-selected": {"background-color": "rgba(255,255,255,0.12)", "font-weight": "600"},
+        },
     )
 
 _PAGES[page_name].render()
