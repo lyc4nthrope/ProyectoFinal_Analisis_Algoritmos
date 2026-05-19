@@ -8,11 +8,12 @@ st.set_page_config(
     layout="wide",
 )
 
-from app.views import api_search, clustering, concepts, export_pdf, overview, similarity, visualization
+from app.views import api_search, clustering, concepts, export_pdf, overview, similarity, upload_files, visualization
 
 _PAGES = {
-    "Búsqueda API": api_search,
     "Inicio": overview,
+    "Cargar archivos": upload_files,
+    "Búsqueda API": api_search,
     "Similitud": similarity,
     "Conceptos": concepts,
     "Clustering": clustering,

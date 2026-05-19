@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from app.loader import load_corpus
-from src.repositories import clear_corpus
+from src.repositories import clear_corpus, load_duplicates_df
 
 
 def render() -> None:
@@ -10,17 +10,24 @@ def render() -> None:
     df = load_corpus()
 
     if df.empty:
-        st.warning("📭 No hay datos en el corpus. Usá la sección 'Búsqueda API' para buscar artículos e integrarlos al corpus.")
+        st.warning("📭 No hay datos en el corpus. Usá la sección 'Cargar archivos' o 'Búsqueda API' para agregar artículos al corpus.")
         return
 
+    dups_df = load_duplicates_df()
     years = pd.to_numeric(df["year"], errors="coerce").dropna().astype(int)
     journals = df["journal"].replace("", pd.NA).dropna()
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Artículos únicos", len(df))
-    col2.metric("Revistas distintas", int(journals.nunique()))
-    col3.metric("Año más antiguo", int(years.min()) if len(years) > 0 else "—")
-    col4.metric("Año más reciente", int(years.max()) if len(years) > 0 else "—")
+    col2.metric("Duplicados eliminados", len(dups_df))
+    col3.metric("Revistas distintas", int(journals.nunique()))
+    col4.metric("Año más antiguo", int(years.min()) if len(years) > 0 else "—")
+    col5.metric("Año más reciente", int(years.max()) if len(years) > 0 else "—")
+
+    if not dups_df.empty:
+        with st.expander(f"Ver registros duplicados eliminados ({len(dups_df)})"):
+            dup_cols = [c for c in ["title", "authors", "year", "source"] if c in dups_df.columns]
+            st.dataframe(dups_df[dup_cols], hide_index=True, use_container_width=True)
 
     st.subheader("Todos los artículos")
     cols = ["title", "authors", "journal", "year", "doi"]
