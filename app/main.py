@@ -23,7 +23,12 @@ _PAGES = {
 
 with st.sidebar:
     st.title("Bibliometría GenAI")
-    st.caption("Universidad del Quindío — Análisis de Algoritmos")
+    st.caption(
+        "Universidad del Quindío\n"
+        "Análisis de Algoritmos\n\n"
+        "Daniel Stiven Perez Cordoba\n"
+        "Cristhian Eduardo Osorio Restrepo"
+    )
     st.divider()
     page_name = st.radio("Sección", list(_PAGES.keys()), label_visibility="collapsed")
 
