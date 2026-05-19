@@ -39,10 +39,7 @@ class ApiParser:
             cursor = data.get("next_cursor")
             time.sleep(1)
 
-        return {
-            "results": all_results[:max_results],
-            "total": total_count,
-        }
+        return all_results[:max_results]
 
     def fetch_page(self, query: str, cursor: str = "*", per_page: int = 25) -> dict:
         """Fetch a single page of results from OpenAlex."""

@@ -21,9 +21,12 @@ _FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 _FONT_BOLD_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 
-def _configure_fonts(pdf: FPDF) -> None:
-    pdf.add_font("DejaVu", "", _FONT_PATH)
-    pdf.add_font("DejaVu", "B", _FONT_BOLD_PATH)
+def _configure_fonts(pdf: FPDF) -> str:
+    if Path(_FONT_PATH).exists() and Path(_FONT_BOLD_PATH).exists():
+        pdf.add_font("DejaVu", "", _FONT_PATH)
+        pdf.add_font("DejaVu", "B", _FONT_BOLD_PATH)
+        return "DejaVu"
+    return "Helvetica"
 
 
 def _plotly_to_png(fig: go.Figure, width: int = 1100, height: int = 550) -> bytes:
@@ -37,41 +40,41 @@ def _matplotlib_to_png(fig: MplFigure) -> bytes:
     return buf.read()
 
 
-def _add_figure_page(pdf: FPDF, title: str, image_bytes: bytes) -> None:
+def _add_figure_page(pdf: FPDF, title: str, image_bytes: bytes, font: str = "DejaVu") -> None:
     pdf.add_page()
-    pdf.set_font("DejaVu", "B", 13)
+    pdf.set_font(font, "B", 13)
     pdf.cell(0, 10, title, new_x="LMARGIN", new_y="NEXT", align="C")
     pdf.ln(3)
     pdf.image(io.BytesIO(image_bytes), x=_MARGIN_MM, w=_USABLE_W_MM)
 
 
-def _build_cover(pdf: FPDF) -> None:
+def _build_cover(pdf: FPDF, font: str = "DejaVu") -> None:
     pdf.add_page()
-    pdf.set_font("DejaVu", "B", 22)
+    pdf.set_font(font, "B", 22)
     pdf.ln(70)
     pdf.cell(0, 14, "Informe Bibliométrico", new_x="LMARGIN", new_y="NEXT", align="C")
-    pdf.set_font("DejaVu", "", 13)
+    pdf.set_font(font, "", 13)
     pdf.ln(4)
     pdf.cell(
         0, 8,
-        "Generative Artificial Intelligence — Análisis de Literatura",
+        "Generative Artificial Intelligence - Analisis de Literatura",
         new_x="LMARGIN", new_y="NEXT", align="C",
     )
     pdf.ln(6)
-    pdf.set_font("DejaVu", "", 11)
+    pdf.set_font(font, "", 11)
     pdf.cell(
         0, 6,
-        "Universidad del Quindío — Análisis de Algoritmos",
+        "Universidad del Quindio - Analisis de Algoritmos",
         new_x="LMARGIN", new_y="NEXT", align="C",
     )
 
 
-def _add_note_page(pdf: FPDF, title: str, lines: list[str]) -> None:
+def _add_note_page(pdf: FPDF, title: str, lines: list[str], font: str = "DejaVu") -> None:
     pdf.add_page()
-    pdf.set_font("DejaVu", "B", 13)
+    pdf.set_font(font, "B", 13)
     pdf.cell(0, 10, title, new_x="LMARGIN", new_y="NEXT")
     pdf.ln(2)
-    pdf.set_font("DejaVu", "", 11)
+    pdf.set_font(font, "", 11)
     for line in lines:
         pdf.multi_cell(0, 6, line)
         pdf.ln(1)
@@ -99,19 +102,19 @@ def export_report(
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=_MARGIN_MM)
     pdf.set_margins(_MARGIN_MM, _MARGIN_MM, _MARGIN_MM)
-    _configure_fonts(pdf)
+    font = _configure_fonts(pdf)
 
-    _build_cover(pdf)
+    _build_cover(pdf, font)
 
     for title, lines in notes or []:
-        _add_note_page(pdf, title, lines)
+        _add_note_page(pdf, title, lines, font)
 
     for title, fig in figures:
         image_bytes = (
             _matplotlib_to_png(fig) if isinstance(fig, MplFigure)
             else _plotly_to_png(fig)
         )
-        _add_figure_page(pdf, title, image_bytes)
+        _add_figure_page(pdf, title, image_bytes, font)
 
     pdf.output(str(output_path))
     return output_path

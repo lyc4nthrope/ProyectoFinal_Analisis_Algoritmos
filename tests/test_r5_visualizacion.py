@@ -14,6 +14,7 @@ from matplotlib.figure import Figure as MplFigure
 from src.visualization.timeline_chart import build_year_timeline, build_journal_timeline
 from src.visualization.wordcloud_chart import build_wordcloud_figure
 from src.visualization.pdf_exporter import export_report
+from src.visualization import geo_heatmap
 
 
 # ── Cronología de publicaciones ───────────────────────────────────────────────
@@ -170,7 +171,65 @@ class TestExportacionPDF:
         output_path = export_report(
             [("Figura 1", fig1), ("Figura 2", fig2)],
             filename="coverage.pdf",
-            notes=[("Nota metodológica", ["Linea unica"])],
+            notes=[("Nota metodologica", ["Linea unica"])],
         )
 
         assert self._count_pdf_pages(output_path) >= 4
+
+    def test_export_report_acepta_figura_plotly(self, sample_df, tmp_path, monkeypatch):
+        """Verifica ruta kaleido: Plotly Figure -> PNG -> pagina PDF."""
+        from src.visualization import pdf_exporter
+
+        monkeypatch.setattr(pdf_exporter, "_EXPORTS_DIR", tmp_path)
+
+        fig = build_year_timeline(sample_df)
+        output_path = export_report(
+            [("Cronologia de publicaciones", fig)],
+            filename="test_plotly.pdf",
+        )
+
+        assert output_path.exists()
+        assert output_path.stat().st_size > 1024
+
+
+# ── Mapa de calor geográfico ──────────────────────────────────────────────────
+
+class TestMapaCalorGeografico:
+    def test_build_country_counts_retorna_dataframe(self, sample_df, monkeypatch):
+        monkeypatch.setattr(
+            geo_heatmap,
+            "resolve_countries",
+            lambda dois, **kwargs: {doi: "Spain" for doi in dois if doi},
+        )
+        counts = geo_heatmap.build_country_counts(sample_df)
+        assert isinstance(counts, pd.DataFrame)
+        assert list(counts.columns) == ["country", "count"]
+
+    def test_build_country_counts_agrupa_por_pais(self, sample_df, monkeypatch):
+        monkeypatch.setattr(
+            geo_heatmap,
+            "resolve_countries",
+            lambda dois, **kwargs: {doi: "Colombia" for doi in dois if doi},
+        )
+        counts = geo_heatmap.build_country_counts(sample_df)
+        assert len(counts) == 1
+        assert counts.iloc[0]["country"] == "Colombia"
+        assert counts.iloc[0]["count"] == len(sample_df)
+
+    def test_build_country_counts_excluye_unknown(self, sample_df, monkeypatch):
+        dois = sample_df["doi"].tolist()
+        half = len(dois) // 2
+        mapping = {doi: ("Spain" if i < half else "Unknown") for i, doi in enumerate(dois)}
+        monkeypatch.setattr(
+            geo_heatmap,
+            "resolve_countries",
+            lambda d, **kwargs: {doi: mapping.get(doi, "Unknown") for doi in d},
+        )
+        counts = geo_heatmap.build_country_counts(sample_df)
+        assert all(counts["country"] != "Unknown")
+        assert len(counts) == 1
+
+    def test_build_heatmap_figure_retorna_plotly_figure(self):
+        country_counts = pd.DataFrame({"country": ["Spain", "France"], "count": [5, 3]})
+        fig = geo_heatmap.build_heatmap_figure(country_counts)
+        assert isinstance(fig, go.Figure)
