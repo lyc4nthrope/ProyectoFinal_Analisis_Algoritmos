@@ -250,6 +250,14 @@ En conclusion, este proyecto busca aplicar algoritmos al analisis de publicacion
 
 ---
 
+## Despliegue
+
+La aplicación está disponible en:
+
+**https://bibliometria-genai.streamlit.app**
+
+---
+
 ## Instalacion y ejecucion
 
 ### Requisitos previos
