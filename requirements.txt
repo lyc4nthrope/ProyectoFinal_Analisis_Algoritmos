@@ -12,7 +12,6 @@ scipy
 # Algoritmos de similitud con IA
 rank-bm25
 sentence-transformers
-torch --index-url https://download.pytorch.org/whl/cpu
 
 # Visualización
 matplotlib

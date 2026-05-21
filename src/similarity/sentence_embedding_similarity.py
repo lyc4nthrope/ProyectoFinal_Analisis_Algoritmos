@@ -1,6 +1,11 @@
 import numpy as np
-from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+try:
+    from sentence_transformers import SentenceTransformer
+    _HAS_SENTENCE_TRANSFORMERS = True
+except ImportError:
+    _HAS_SENTENCE_TRANSFORMERS = False
 
 from src.similarity.base_similarity import BaseSimilarity, SimilarityResult
 
@@ -34,7 +39,9 @@ class SentenceEmbeddingSimilarity(BaseSimilarity):
     def name(self) -> str:
         return f"Sentence Embeddings ({self._model_name})"
 
-    def _load_model(self) -> SentenceTransformer:
+    def _load_model(self) -> "SentenceTransformer":
+        if not _HAS_SENTENCE_TRANSFORMERS:
+            raise RuntimeError("sentence-transformers no instalado — usando fallback TF-IDF")
         if self._model is None:
             self._model = SentenceTransformer(self._model_name, local_files_only=True)
         return self._model

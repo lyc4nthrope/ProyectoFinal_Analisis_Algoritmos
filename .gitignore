@@ -19,3 +19,5 @@ data/processed/*
 # Keep directory structure
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/processed/unified.csv
+!data/processed/duplicates.csv
