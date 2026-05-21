@@ -37,7 +37,7 @@ def _show_current_sources() -> None:
                 rows.append({"Fuente": source_dir.name, "Archivo": f.name})
 
     if rows:
-        st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
     else:
         st.info("No hay archivos .bib en data/raw/.")
 

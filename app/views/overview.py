@@ -27,7 +27,7 @@ def render() -> None:
     if not dups_df.empty:
         with st.expander(f"Ver registros duplicados eliminados ({len(dups_df)})"):
             dup_cols = [c for c in ["title", "authors", "year", "source"] if c in dups_df.columns]
-            st.dataframe(dups_df[dup_cols], hide_index=True, use_container_width=True)
+            st.dataframe(dups_df[dup_cols], hide_index=True, width="stretch")
 
     st.subheader("Todos los artículos")
     cols = ["title", "authors", "journal", "year", "doi"]

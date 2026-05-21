@@ -95,7 +95,7 @@ def _render_tab_compare(
             })
         st.dataframe(
             pd.DataFrame(rows).style.format({"Score": "{:.4f}"}),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -157,7 +157,7 @@ def _render_tab_find_similar(
                     })
                 st.dataframe(
                     pd.DataFrame(data).style.format({"Score": "{:.4f}"}),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -271,7 +271,7 @@ def _render_tab_matrix(
                 st.subheader(f"{algo_name} — {elapsed_s:.2f}s")
                 st.dataframe(
                     df_matrix.style.background_gradient(cmap="YlOrRd", axis=None),
-                    use_container_width=True,
+                    width="stretch",
                 )
 
                 progress_bar.progress((i + 1) / len(algorithms_to_run))

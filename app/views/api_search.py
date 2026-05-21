@@ -282,7 +282,7 @@ def render() -> None:
             },
             column_order=["seleccionar"] + list(available_cols.values()),
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
             height=400,
         )
 
