@@ -1,11 +1,11 @@
 # Parseo y datos
 bibtexparser==1.4.1
-pandas==2.2.3
+pandas>=2.2.3
 unidecode==1.3.8
 
 # Procesamiento de texto y NLP
 nltk
-python-Levenshtein==0.25.1
+rapidfuzz>=3.9.0
 scikit-learn
 scipy
 

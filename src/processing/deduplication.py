@@ -1,4 +1,4 @@
-import Levenshtein
+from rapidfuzz.distance import Levenshtein
 
 from src.processing.text_preprocessing import normalize
 
