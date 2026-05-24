@@ -30,7 +30,23 @@ def _configure_fonts(pdf: FPDF) -> str:
 
 
 def _plotly_to_png(fig: go.Figure, width: int = 1100, height: int = 550) -> bytes:
-    return pio.to_image(fig, format="png", width=width, height=height, scale=2)
+    try:
+        return pio.to_image(fig, format="png", width=width, height=height, scale=2)
+    except Exception:
+        import matplotlib.pyplot as plt
+        mpl_fig, ax = plt.subplots(figsize=(11, 5.5))
+        ax.text(
+            0.5, 0.5,
+            "Figura Plotly\n(kaleido no disponible en esta plataforma)",
+            ha="center", va="center", fontsize=14, color="gray",
+            transform=ax.transAxes,
+        )
+        ax.axis("off")
+        buf = io.BytesIO()
+        mpl_fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
+        plt.close(mpl_fig)
+        buf.seek(0)
+        return buf.read()
 
 
 def _matplotlib_to_png(fig: MplFigure) -> bytes:

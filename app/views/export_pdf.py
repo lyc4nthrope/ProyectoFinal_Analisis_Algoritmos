@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import streamlit as st
 
 from app.loader import load_corpus
-from src.visualization.geo_heatmap import build_country_counts, build_heatmap_figure
+from src.visualization.geo_heatmap import build_country_counts, build_heatmap_figure_mpl
 from src.visualization.pdf_exporter import export_report
-from src.visualization.timeline_chart import build_year_timeline, build_journal_timeline
+from src.visualization.timeline_chart import build_year_timeline_mpl, build_journal_timeline_mpl
 from src.visualization.wordcloud_chart import build_wordcloud_figure
 
 
@@ -36,7 +36,6 @@ def render() -> None:
     keywords = df["keywords"].tolist()
 
     figures = []
-    matplotlib_figs = []
     notes = [
         (
             "Nota metodológica",
@@ -50,19 +49,18 @@ def render() -> None:
 
     with st.spinner("Generando PDF..."):
         if include_year:
-            figures.append(("Publicaciones por año", build_year_timeline(df)))
+            figures.append(("Publicaciones por año", build_year_timeline_mpl(df)))
         if include_journal:
-            figures.append(("Publicaciones por revista (top 10)", build_journal_timeline(df)))
+            figures.append(("Publicaciones por revista (top 10)", build_journal_timeline_mpl(df)))
         if include_wordcloud:
             fig_wc = build_wordcloud_figure(abstracts, keywords)
             figures.append(("Nube de palabras — abstracts y keywords", fig_wc))
-            matplotlib_figs.append(fig_wc)
         if include_geo:
             counts = build_country_counts(df)
             if counts.empty:
                 st.warning("No se pudo resolver información geográfica suficiente para el PDF.")
             else:
-                figures.append(("Distribución geográfica (primer autor)", build_heatmap_figure(counts)))
+                figures.append(("Distribución geográfica (primer autor)", build_heatmap_figure_mpl(counts)))
 
         output_path = export_report(
             figures,
@@ -70,7 +68,7 @@ def render() -> None:
             notes=notes,
         )
 
-    for fig in matplotlib_figs:
+    for _, fig in figures:
         plt.close(fig)
 
     st.success(f"PDF generado correctamente ({output_path.stat().st_size // 1024} KB).")

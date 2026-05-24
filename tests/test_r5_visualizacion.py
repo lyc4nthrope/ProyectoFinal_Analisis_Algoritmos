@@ -177,7 +177,7 @@ class TestExportacionPDF:
         assert self._count_pdf_pages(output_path) >= 4
 
     def test_export_report_acepta_figura_plotly(self, sample_df, tmp_path, monkeypatch):
-        """Verifica ruta kaleido: Plotly Figure -> PNG -> pagina PDF."""
+        """Plotly Figure -> PNG via fallback (sin kaleido) -> pagina PDF."""
         from src.visualization import pdf_exporter
 
         monkeypatch.setattr(pdf_exporter, "_EXPORTS_DIR", tmp_path)
