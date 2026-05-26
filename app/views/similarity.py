@@ -1,13 +1,19 @@
+# Importa time para medir el tiempo total de búsqueda de similares
 import time
 
+# Importa pandas para mostrar las tablas de resultados
 import pandas as pd
+# Importa Streamlit para construir la interfaz de similitud
 import streamlit as st
 
+# Importa el analizador de similitud y el cargador del corpus
 from app.loader import get_similarity_analyzer, load_corpus
+# Importa el token de cancelación para interrumpir búsquedas largas
 from src.similarity.base_similarity import CancelToken
 
 
 def _algo_dropdown_options(analyzer) -> list[str]:
+    # Construye las opciones del dropdown: "Nombre — O(complejidad)"
     return [
         f"{option['name']} — {option['complexity_time']}"
         for option in analyzer.algorithm_options
@@ -15,6 +21,7 @@ def _algo_dropdown_options(analyzer) -> list[str]:
 
 
 def _parse_algo_name(dropdown_value: str) -> str:
+    # Extrae el nombre del algoritmo del string del dropdown (antes del " — ")
     return dropdown_value.split(" — ")[0]
 
 
@@ -22,6 +29,7 @@ def render() -> None:
     st.title("Análisis de similitud")
     st.caption("Compará artículos académicos usando 6 algoritmos de similitud textual.")
 
+    # Carga el corpus y verifica que no esté vacío
     df = load_corpus()
     if df.empty:
         st.warning("📭 No hay datos en el corpus. Usá la sección 'Búsqueda API' para buscar artículos e integrarlos al corpus.")
@@ -30,14 +38,17 @@ def render() -> None:
     titles = df["title"].tolist()
     texts = df["abstract"].tolist()
 
+    # Obtiene el analizador de similitud (ya entrenado desde el caché)
     analyzer = get_similarity_analyzer()
     if analyzer is None:
         st.warning("No se pudo inicializar el analizador de similitud.")
         return
 
+    # Inicializa el token de cancelación en el estado de la sesión si no existe
     if "sim_cancel_token" not in st.session_state:
         st.session_state.sim_cancel_token = None
 
+    # Las 3 funcionalidades de similitud en tabs separados
     tab1, tab2, tab3 = st.tabs(["Comparar 2", "Encontrar similares", "Matriz N×N"])
 
     with tab1:
@@ -56,12 +67,13 @@ def _render_tab_compare(
     analyzer,
 ) -> None:
     assert analyzer is not None
+    # Dos selectboxes en paralelo para elegir los dos artículos a comparar
     col1, col2 = st.columns(2)
     with col1:
         idx_a = st.selectbox(
             "Artículo A",
             range(len(titles)),
-            format_func=lambda i: titles[i],
+            format_func=lambda i: titles[i],  # Muestra el título en lugar del índice
             key="sim_a",
         )
     with col2:
@@ -70,19 +82,23 @@ def _render_tab_compare(
             range(len(titles)),
             format_func=lambda i: titles[i],
             key="sim_b",
-            index=min(1, max(0, len(titles) - 1)),
+            index=min(1, max(0, len(titles) - 1)),  # Selecciona el segundo artículo por defecto
         )
 
+    # Valida que no se seleccione el mismo artículo dos veces
     if idx_a == idx_b:
         st.warning("Seleccioná dos artículos diferentes.")
         return
 
     if st.button("Comparar", type="primary"):
         with st.spinner("Calculando similitud (el primer cálculo carga el modelo de embeddings)..."):
+            # Ejecuta los 6 algoritmos sobre el par de textos seleccionados
             results = analyzer.compare(texts[idx_a], texts[idx_b])
 
+        # Ordena los resultados de mayor a menor score para mostrar el mejor primero
         results_sorted = sorted(results, key=lambda r: r.score, reverse=True)
 
+        # Tabla resumen con score, tiempo y complejidades de cada algoritmo
         st.subheader("Resultados")
         rows = []
         for r in results_sorted:
@@ -99,6 +115,7 @@ def _render_tab_compare(
             hide_index=True,
         )
 
+        # Expandibles con los pasos de cálculo matemático de cada algoritmo
         st.subheader("Pasos de cálculo")
         for r in results_sorted:
             with st.expander(f"{r.algorithm} — score: {r.score:.4f} — {r.time_ms:.1f}ms"):
@@ -111,6 +128,7 @@ def _render_tab_find_similar(
     analyzer,
 ) -> None:
     assert analyzer is not None
+    # Selector del artículo de consulta
     idx = st.selectbox(
         "Artículo (texto de consulta)",
         range(len(titles)),
@@ -118,8 +136,10 @@ def _render_tab_find_similar(
         key="find_idx",
     )
 
+    # Slider para elegir cuántos artículos similares mostrar
     k = st.slider("Cantidad de resultados (k)", min_value=1, max_value=50, value=10)
 
+    # Si hay una búsqueda en curso, muestra el botón de cancelación
     if st.session_state.sim_cancel_token is not None:
         if st.button("⏹️ Cancelar"):
             st.session_state.sim_cancel_token.cancel()
@@ -127,12 +147,14 @@ def _render_tab_find_similar(
             st.rerun()
 
     if st.button("Buscar similares", type="primary"):
+        # Crea un nuevo token de cancelación para esta búsqueda
         cancel_token = CancelToken()
         st.session_state.sim_cancel_token = cancel_token
 
         try:
             t0 = time.time()
             with st.spinner("Buscando documentos similares..."):
+                # Busca los k artículos más similares con cada uno de los 6 algoritmos
                 results = analyzer.find_most_similar(
                     text=texts[idx],
                     corpus_texts=texts,
@@ -142,13 +164,16 @@ def _render_tab_find_similar(
                 )
             elapsed = time.time() - t0
 
+            # Si el usuario canceló, muestra advertencia y termina
             if cancel_token.is_cancelled:
                 st.warning("⏹️ Operación cancelada por el usuario.")
                 return
 
+            # Muestra los resultados de cada algoritmo en secciones separadas
             for algo_name, algo_results in results.items():
                 st.subheader(algo_name)
 
+                # Tabla con los k artículos más similares según este algoritmo
                 data = []
                 for r in algo_results:
                     data.append({
@@ -161,6 +186,7 @@ def _render_tab_find_similar(
                     hide_index=True,
                 )
 
+                # Expandible con los pasos de cálculo del último artículo de la lista
                 with st.expander(f"Pasos de cálculo — {algo_name}"):
                     for r in algo_results:
                         st.markdown(f"**{r.title}** — score: {r.score:.4f}")
@@ -168,6 +194,7 @@ def _render_tab_find_similar(
 
             st.success(f"✅ Completado en {elapsed:.1f}s")
         finally:
+            # Siempre limpia el token de cancelación al terminar (éxito o error)
             if st.session_state.sim_cancel_token is cancel_token:
                 st.session_state.sim_cancel_token = None
 
@@ -178,6 +205,7 @@ def _render_tab_matrix(
     analyzer,
 ) -> None:
     assert analyzer is not None
+    # Multiselect para elegir los artículos a incluir en la matriz N×N
     selected = st.multiselect(
         "Seleccionar artículos para la matriz de similitud",
         range(len(titles)),
@@ -189,19 +217,23 @@ def _render_tab_matrix(
     if N > 0:
         st.caption(f"Seleccionados: {N} artículo{'s' if N != 1 else ''}")
 
+    # Requiere al menos 3 artículos para que la matriz sea informativa
     if 0 < N < 3:
         st.warning("Seleccioná al menos 3 artículos para generar la matriz.")
         return
 
+    # Advertencia de rendimiento para selecciones grandes
     if N > 50:
         st.warning("⚠️ Más de 50 artículos seleccionados — el cálculo puede ser lento. Se recomienda seleccionar menos artículos o usar 1 solo algoritmo.")
 
     algo_options = _algo_dropdown_options(analyzer)
 
+    # Para 10 artículos o menos permite elegir "todos los algoritmos"
     if N <= 10:
         dropdown_options = ["--- Todos los algoritmos ---"] + algo_options
         algo_default = 0
     else:
+        # Para más de 10 artículos fuerza a elegir un solo algoritmo por rendimiento
         dropdown_options = algo_options
         algo_default = 0
 
@@ -218,6 +250,7 @@ def _render_tab_matrix(
     if 0 < N < 3:
         return
 
+    # Si hay una búsqueda en curso, muestra el botón de cancelación
     if st.session_state.sim_cancel_token is not None:
         if st.button("⏹️ Cancelar"):
             st.session_state.sim_cancel_token.cancel()
@@ -225,23 +258,28 @@ def _render_tab_matrix(
             st.rerun()
 
     if st.button("Calcular matriz", type="primary"):
+        # Extrae los textos y títulos de los artículos seleccionados
         selected_texts = [texts[i] for i in selected]
         selected_titles = [titles[i] for i in selected]
 
+        # Valida que se haya elegido un algoritmo si hay más de 10 artículos
         if N > 10 and (selected_dropdown is None or selected_dropdown == ""):
             st.error("Seleccioná un algoritmo específico para continuar.")
             return
 
+        # Determina cuáles algoritmos ejecutar según la selección
         if selected_dropdown and selected_dropdown != "--- Todos los algoritmos ---":
             algorithms_to_run = [_parse_algo_name(selected_dropdown)]
         else:
             algorithms_to_run = [_parse_algo_name(opt) for opt in algo_options]
 
+        # Crea un token de cancelación para esta operación
         cancel_token = CancelToken()
         st.session_state.sim_cancel_token = cancel_token
 
         try:
             total_t0 = time.time()
+            # Barra de progreso y placeholder de estado
             progress_bar = st.progress(0)
             status = st.empty()
 
@@ -251,6 +289,7 @@ def _render_tab_matrix(
 
                 status.text(f"📊 Calculando {algo_name}...")
 
+                # Calcula la matriz N×N para este algoritmo
                 result = analyzer.compute_matrix_single(
                     algo_name,
                     selected_texts,
@@ -263,17 +302,20 @@ def _render_tab_matrix(
                 matrix, elapsed_ms = result
                 elapsed_s = elapsed_ms / 1000
 
+                # Construye el DataFrame de la matriz con títulos truncados como índices
                 df_matrix = pd.DataFrame(
                     matrix,
                     index=[t[:30] + "..." for t in selected_titles],
                     columns=[t[:30] + "..." for t in selected_titles],
                 )
+                # Muestra la matriz con gradiente de colores: más rojo = más similar
                 st.subheader(f"{algo_name} — {elapsed_s:.2f}s")
                 st.dataframe(
                     df_matrix.style.background_gradient(cmap="YlOrRd", axis=None),
                     width="stretch",
                 )
 
+                # Actualiza la barra de progreso según cuántos algoritmos se completaron
                 progress_bar.progress((i + 1) / len(algorithms_to_run))
 
             total_elapsed = time.time() - total_t0
@@ -283,8 +325,10 @@ def _render_tab_matrix(
             else:
                 st.success(f"✅ Completado en {total_elapsed:.1f}s")
 
+            # Limpia la barra de progreso al terminar
             progress_bar.empty()
 
         finally:
+            # Siempre limpia el token de cancelación al terminar
             if st.session_state.sim_cancel_token is cancel_token:
                 st.session_state.sim_cancel_token = None

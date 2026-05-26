@@ -1,20 +1,28 @@
+# Agrega la raíz del proyecto al path de Python para que los imports de src/ funcionen
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Configura matplotlib para modo no interactivo (sin ventana GUI)
+# Debe hacerse ANTES de importar cualquier módulo que use matplotlib
 import matplotlib
 matplotlib.use("Agg")
 
+# Importa Streamlit como framework principal de la aplicación web
 import streamlit as st
+# Importa el menú lateral con iconos de Bootstrap Icons
 from streamlit_option_menu import option_menu
 
+# Configura la página: título en el browser y layout ancho
 st.set_page_config(
     page_title="Bibliometría GenAI",
     layout="wide",
 )
 
+# Importa todas las vistas de la aplicación (cada una tiene una función render())
 from app.views import api_search, clustering, concepts, export_pdf, overview, similarity, upload_files, visualization
 
+# Diccionario que mapea nombre de página → módulo de vista
 _PAGES = {
     "Inicio": overview,
     "Cargar archivos": upload_files,
@@ -26,6 +34,7 @@ _PAGES = {
     "Exportar PDF": export_pdf,
 }
 
+# Iconos de Bootstrap Icons correspondientes a cada página (en el mismo orden)
 _ICONS = [
     "house",
     "cloud-upload",
@@ -37,7 +46,9 @@ _ICONS = [
     "file-earmark-pdf",
 ]
 
+# Construye el sidebar con el menú de navegación
 with st.sidebar:
+    # Título y créditos del proyecto
     st.title("Bibliometría GenAI")
     st.caption(
         "Universidad del Quindío  \n"
@@ -46,6 +57,7 @@ with st.sidebar:
         "Cristhian Eduardo Osorio Restrepo"
     )
     st.divider()
+    # Menú de navegación con iconos; retorna el nombre de la página seleccionada
     page_name = option_menu(
         menu_title=None,
         options=list(_PAGES.keys()),
@@ -58,4 +70,5 @@ with st.sidebar:
         },
     )
 
+# Llama a la función render() de la vista activa según lo que seleccionó el usuario
 _PAGES[page_name].render()

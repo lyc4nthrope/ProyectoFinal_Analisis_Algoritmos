@@ -9,8 +9,10 @@ el análisis completo a PDF."
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
+# Importa Figure de matplotlib para verificar las figuras de nube de palabras y dendrograma
 from matplotlib.figure import Figure as MplFigure
 
+# Importa las funciones de visualización que se van a testear
 from src.visualization.timeline_chart import build_year_timeline, build_journal_timeline
 from src.visualization.wordcloud_chart import build_wordcloud_figure
 from src.visualization.pdf_exporter import export_report
@@ -20,14 +22,17 @@ from src.visualization import geo_heatmap
 # ── Cronología de publicaciones ───────────────────────────────────────────────
 
 class TestCronologiaPublicaciones:
+    # Verifica que la cronología por año devuelve un objeto Plotly Figure
     def test_build_year_timeline_retorna_plotly_figure(self, sample_df):
         fig = build_year_timeline(sample_df)
         assert isinstance(fig, go.Figure)
 
+    # Verifica que la figura tiene al menos un trace (datos) — no está vacía
     def test_year_timeline_tiene_datos(self, sample_df):
         fig = build_year_timeline(sample_df)
         assert len(fig.data) > 0
 
+    # Verifica que años inválidos (9999, cadenas no numéricas, vacíos) son ignorados sin error
     def test_year_timeline_ignora_anios_invalidos(self):
         df = pd.DataFrame({
             "year": ["2023", "9999", "not-a-year", "2024", ""],
@@ -36,20 +41,24 @@ class TestCronologiaPublicaciones:
         fig = build_year_timeline(df)
         assert isinstance(fig, go.Figure)
 
+    # Verifica que un DataFrame vacío no lanza excepción — devuelve una figura vacía
     def test_year_timeline_con_df_vacio_no_lanza_excepcion(self):
         df = pd.DataFrame({"year": [], "journal": []})
         fig = build_year_timeline(df)
         assert isinstance(fig, go.Figure)
 
+    # Verifica que la cronología por revista también devuelve un Plotly Figure
     def test_build_journal_timeline_retorna_plotly_figure(self, sample_df):
         fig = build_journal_timeline(sample_df)
         assert isinstance(fig, go.Figure)
 
+    # Verifica que la gráfica no muestra más de 10 revistas (top-10 por diseño)
     def test_journal_timeline_limita_a_top_10_revistas(self, sample_df):
         fig = build_journal_timeline(sample_df)
         if fig.data:
             assert len(fig.data) <= 10
 
+    # Verifica que revistas con nombre vacío son excluidas del gráfico
     def test_journal_timeline_ignora_revistas_vacias(self):
         df = pd.DataFrame({
             "year":    ["2023", "2024", "2023"],
@@ -62,15 +71,18 @@ class TestCronologiaPublicaciones:
 # ── Nube de palabras ──────────────────────────────────────────────────────────
 
 class TestNubeDePalabras:
+    # Verifica que la nube de palabras devuelve una Figure de matplotlib
     def test_build_wordcloud_retorna_matplotlib_figure(self, sample_abstracts):
         fig = build_wordcloud_figure(sample_abstracts, [])
         assert isinstance(fig, MplFigure)
 
+    # Verifica que la función acepta keywords adicionales además de los abstracts
     def test_wordcloud_con_keywords(self, sample_abstracts):
         keywords = ["generative AI", "machine learning"]
         fig = build_wordcloud_figure(sample_abstracts, keywords)
         assert isinstance(fig, MplFigure)
 
+    # Verifica que con listas de keywords vacías funciona correctamente
     def test_wordcloud_con_listas_vacias(self):
         abstracts = ["generative AI education learning"]
         fig = build_wordcloud_figure(abstracts, [])
@@ -80,6 +92,7 @@ class TestNubeDePalabras:
 # ── Exportación a PDF ─────────────────────────────────────────────────────────
 
 class TestExportacionPDF:
+    # Helper que cuenta páginas PDF contando objetos "/Type /Page" en el binario
     def _count_pdf_pages(self, path) -> int:
         content = path.read_bytes()
         return content.count(b"/Type /Page")
@@ -88,6 +101,7 @@ class TestExportacionPDF:
         """Exporta solo figuras Matplotlib para evitar dependencia de kaleido en tests."""
         from src.visualization import pdf_exporter
 
+        # Redirige el directorio de exports al tmp_path para no contaminar el proyecto
         monkeypatch.setattr(pdf_exporter, "_EXPORTS_DIR", tmp_path)
 
         fig = build_wordcloud_figure(sample_abstracts, [])
@@ -96,8 +110,10 @@ class TestExportacionPDF:
             filename="test_report.pdf",
         )
 
+        # El PDF debe existir en el sistema de archivos
         assert output_path.exists(), "El PDF no fue creado"
 
+    # Verifica que el PDF generado tiene más de 1 KB (no está vacío ni corrupto)
     def test_export_report_archivo_no_vacio(self, sample_abstracts, tmp_path, monkeypatch):
         from src.visualization import pdf_exporter
 
@@ -112,6 +128,7 @@ class TestExportacionPDF:
         assert output_path.stat().st_size > 1024, \
             f"PDF demasiado pequeño: {output_path.stat().st_size} bytes"
 
+    # Verifica que se pueden incluir múltiples figuras en un mismo PDF
     def test_export_report_acepta_multiples_figuras(self, sample_abstracts, tmp_path, monkeypatch):
         from src.visualization import pdf_exporter
 
@@ -126,6 +143,7 @@ class TestExportacionPDF:
 
         assert output_path.exists()
 
+    # Verifica que export_report retorna un objeto Path (no un string)
     def test_export_report_retorna_path(self, sample_abstracts, tmp_path, monkeypatch):
         from pathlib import Path
         from src.visualization import pdf_exporter
@@ -137,6 +155,7 @@ class TestExportacionPDF:
 
         assert isinstance(result, Path)
 
+    # Verifica que el nombre del archivo PDF coincide con el parámetro filename
     def test_export_report_nombre_de_archivo_correcto(self, sample_abstracts, tmp_path, monkeypatch):
         from src.visualization import pdf_exporter
 
@@ -147,6 +166,7 @@ class TestExportacionPDF:
 
         assert output_path.name == "mi_informe.pdf"
 
+    # Verifica que el PDF incluye portada + nota + figura = al menos 3 páginas
     def test_export_report_incluye_portada_y_nota(self, sample_abstracts, tmp_path, monkeypatch):
         from src.visualization import pdf_exporter
 
@@ -159,8 +179,10 @@ class TestExportacionPDF:
             notes=[("Nota metodológica", ["Linea 1", "Linea 2"])],
         )
 
+        # portada + nota + figura = mínimo 3 páginas
         assert self._count_pdf_pages(output_path) >= 3
 
+    # Verifica que con 2 figuras y 1 nota hay al menos 4 páginas en el PDF
     def test_export_report_multiples_figuras_y_nota_suman_paginas(self, sample_abstracts, tmp_path, monkeypatch):
         from src.visualization import pdf_exporter
 
@@ -174,10 +196,12 @@ class TestExportacionPDF:
             notes=[("Nota metodologica", ["Linea unica"])],
         )
 
+        # portada + nota + 2 figuras = mínimo 4 páginas
         assert self._count_pdf_pages(output_path) >= 4
 
     def test_export_report_acepta_figura_plotly(self, sample_df, tmp_path, monkeypatch):
         """Plotly Figure -> PNG via fallback (sin kaleido) -> pagina PDF."""
+        # Verifica que el exportador puede manejar figuras Plotly aunque kaleido no esté instalado
         from src.visualization import pdf_exporter
 
         monkeypatch.setattr(pdf_exporter, "_EXPORTS_DIR", tmp_path)
@@ -195,7 +219,9 @@ class TestExportacionPDF:
 # ── Mapa de calor geográfico ──────────────────────────────────────────────────
 
 class TestMapaCalorGeografico:
+    # Verifica que build_country_counts devuelve un DataFrame con las columnas correctas
     def test_build_country_counts_retorna_dataframe(self, sample_df, monkeypatch):
+        # Reemplaza resolve_countries con un mock que siempre devuelve "Spain"
         monkeypatch.setattr(
             geo_heatmap,
             "resolve_countries",
@@ -205,6 +231,7 @@ class TestMapaCalorGeografico:
         assert isinstance(counts, pd.DataFrame)
         assert list(counts.columns) == ["country", "count"]
 
+    # Verifica que cuando todos los DOIs resuelven al mismo país, hay una sola fila
     def test_build_country_counts_agrupa_por_pais(self, sample_df, monkeypatch):
         monkeypatch.setattr(
             geo_heatmap,
@@ -216,9 +243,11 @@ class TestMapaCalorGeografico:
         assert counts.iloc[0]["country"] == "Colombia"
         assert counts.iloc[0]["count"] == len(sample_df)
 
+    # Verifica que los registros con país "Unknown" no aparecen en el resultado
     def test_build_country_counts_excluye_unknown(self, sample_df, monkeypatch):
         dois = sample_df["doi"].tolist()
         half = len(dois) // 2
+        # Mitad de los DOIs resuelven a "Spain", la otra mitad a "Unknown"
         mapping = {doi: ("Spain" if i < half else "Unknown") for i, doi in enumerate(dois)}
         monkeypatch.setattr(
             geo_heatmap,
@@ -226,9 +255,11 @@ class TestMapaCalorGeografico:
             lambda d, **kwargs: {doi: mapping.get(doi, "Unknown") for doi in d},
         )
         counts = geo_heatmap.build_country_counts(sample_df)
+        # No debe haber ninguna fila con "Unknown" en el resultado
         assert all(counts["country"] != "Unknown")
         assert len(counts) == 1
 
+    # Verifica que build_heatmap_figure devuelve un Plotly Figure (mapa coroplético)
     def test_build_heatmap_figure_retorna_plotly_figure(self):
         country_counts = pd.DataFrame({"country": ["Spain", "France"], "count": [5, 3]})
         fig = geo_heatmap.build_heatmap_figure(country_counts)

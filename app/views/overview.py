@@ -1,22 +1,32 @@
+# Importa pandas para manipular el DataFrame del corpus
 import pandas as pd
+# Importa Streamlit para construir la interfaz visual
 import streamlit as st
 
+# Importa la función que carga el corpus desde el CSV procesado
 from app.loader import load_corpus
+# Importa funciones para limpiar el corpus y cargar los duplicados
 from src.repositories import clear_corpus, load_duplicates_df
 
 
 def render() -> None:
     st.title("Corpus bibliográfico")
+    # Carga el corpus desde el caché de Streamlit
     df = load_corpus()
 
+    # Si el corpus está vacío, muestra una advertencia y no renderiza nada más
     if df.empty:
         st.warning("📭 No hay datos en el corpus. Usá la sección 'Cargar archivos' o 'Búsqueda API' para agregar artículos al corpus.")
         return
 
+    # Carga el archivo de duplicados para mostrar el conteo
     dups_df = load_duplicates_df()
+    # Convierte la columna de años a numérico, ignorando valores no convertibles
     years = pd.to_numeric(df["year"], errors="coerce").dropna().astype(int)
+    # Obtiene solo las revistas con valor (no vacías)
     journals = df["journal"].replace("", pd.NA).dropna()
 
+    # Muestra 5 métricas clave del corpus en columnas paralelas
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Artículos únicos", len(df))
     col2.metric("Duplicados eliminados", len(dups_df))
@@ -24,11 +34,14 @@ def render() -> None:
     col4.metric("Año más antiguo", int(years.min()) if len(years) > 0 else "—")
     col5.metric("Año más reciente", int(years.max()) if len(years) > 0 else "—")
 
+    # Muestra los duplicados en un expandible si los hay
     if not dups_df.empty:
         with st.expander(f"Ver registros duplicados eliminados ({len(dups_df)})"):
+            # Solo muestra las columnas informativas disponibles
             dup_cols = [c for c in ["title", "authors", "year", "source"] if c in dups_df.columns]
             st.dataframe(dups_df[dup_cols], hide_index=True, width="stretch")
 
+    # Tabla principal: todos los artículos del corpus con columnas relevantes
     st.subheader("Todos los artículos")
     cols = ["title", "authors", "journal", "year", "doi"]
     if "source" in df.columns:
@@ -40,16 +53,20 @@ def render() -> None:
     display.columns = labels
     st.dataframe(display, width="stretch", hide_index=True)
 
+    # Zona de peligro: permite borrar todo el corpus con confirmación
     st.divider()
     with st.expander("⚠️ Zona de peligro"):
         st.warning("Borrar el corpus elimina TODOS los artículos integrados. Esta acción no se puede deshacer.")
         if st.button("🗑️ Borrar corpus"):
+            # Activa el estado de confirmación en la sesión
             st.session_state.confirmar_borrado = True
 
         if st.session_state.get("confirmar_borrado"):
+            # Muestra dos botones de confirmación en columnas
             col_si, col_no = st.columns(2)
             with col_si:
                 if st.button("✅ Sí, borrar todo", type="primary"):
+                    # Borra el corpus y limpia todos los cachés de Streamlit
                     clear_corpus()
                     st.cache_data.clear()
                     st.cache_resource.clear()

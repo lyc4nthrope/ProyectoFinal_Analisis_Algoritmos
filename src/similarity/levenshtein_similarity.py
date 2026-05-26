@@ -1,4 +1,6 @@
+# Importa la función de tokenización con eliminación de stopwords
 from src.processing.text_preprocessing import tokenize
+# Importa la clase base y la estructura de resultado de similitud
 from src.similarity.base_similarity import BaseSimilarity, SimilarityResult
 
 
@@ -18,13 +20,18 @@ class LevenshteinSimilarity(BaseSimilarity):
         return "Levenshtein (Word Edit Distance)"
 
     def compute_pair(self, text_a: str, text_b: str) -> SimilarityResult:
+        # Tokeniza los textos (normaliza, divide en palabras y elimina stopwords)
         tokens_a = tokenize(text_a)
         tokens_b = tokenize(text_b)
 
+        # Calcula la distancia de edición entre las dos secuencias de tokens
         distance = self._word_edit_distance(tokens_a, tokens_b)
+        # Longitud del texto más largo (base de la normalización)
         max_len = max(len(tokens_a), len(tokens_b))
+        # Convierte la distancia en similitud: 0 ediciones = 1.0, max ediciones = 0.0
         score = round(1 - distance / max_len, 4) if max_len > 0 else 1.0
 
+        # Explicación detallada de cada paso del algoritmo
         steps = [
             f"1. Preprocesamiento: tokenización y eliminación de stopwords.",
             f"   Tokens A ({len(tokens_a)}): {tokens_a[:8]}{'...' if len(tokens_a) > 8 else ''}",
@@ -41,17 +48,23 @@ class LevenshteinSimilarity(BaseSimilarity):
 
     def _word_edit_distance(self, a: list[str], b: list[str]) -> int:
         n, m = len(a), len(b)
+        # Inicializa dp como una fila: dp[j] = distancia para transformar "" en b[:j]
         dp = list(range(m + 1))
 
         for i in range(1, n + 1):
+            # prev guarda dp[i-1][j-1] antes de ser sobreescrito
             prev = dp[0]
+            # Caso base: transformar a[:i] en "" requiere i eliminaciones
             dp[0] = i
             for j in range(1, m + 1):
                 temp = dp[j]
                 if a[i - 1] == b[j - 1]:
+                    # Los tokens son iguales: no cuesta nada (hereda la diagonal)
                     dp[j] = prev
                 else:
+                    # Costo mínimo entre: sustituir (prev), eliminar (dp[j]), insertar (dp[j-1])
                     dp[j] = 1 + min(prev, dp[j], dp[j - 1])
                 prev = temp
 
+        # dp[m] contiene la distancia de edición completa entre a y b
         return dp[m]
